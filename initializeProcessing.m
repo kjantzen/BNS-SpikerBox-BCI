@@ -36,10 +36,10 @@ function p = initializeProcessing(p)
     %add a title to the axis
     sp.Title.String = 'Unfiltered raw data';
     sp.XLabel.String  = 'Time (seconds)';
-    sp.YLabel.String = 'amplitude (ADC units)'
+    sp.YLabel.String = 'amplitude (ADC units)';
     %create a new chart object and pass in the data sample rate, the length
     %of the chart and the axis to plot to.
-    p.chartPlot1 = BYB_Chart(p.sampleRate, 5, sp);
+    p.chartPlot1 = BYB_Chart(p.sampleRate, 3, sp);
   
     %create an fft plotting object to plot the power spectrum of the
     %unfitlered data
@@ -59,14 +59,14 @@ function p = initializeProcessing(p)
     sp.YLabel.String = 'amplitude (ADC units)'
     %because it is an object, we can create a second chart object that is
     %independent of the one we created above.
-    p.chartPlot2 = BYB_Chart(p.sampleRate, 2,sp);
+    p.chartPlot2 = BYB_Chart(p.sampleRate, 3,sp);
   
     %create a filter object to filter each chunk as it comes in
     %i am unecessarily using alot of variables to hold the filter
     %parameters because it is more illustrative than just passing values to
     %the object
     low_edge = 1;
-    high_edge = 150;
+    high_edge = 50;
     filter_range = [low_edge  high_edge];
     filter_type = 'bandpass'; %this must be one of 'low', 'high', 'bandpass' or 'stop'
     p.filter = BYB_Filter(p.sampleRate, filter_range, filter_type);
@@ -84,18 +84,20 @@ function p = initializeProcessing(p)
     
      %create a third plotting object for the rectified time data
     %**********************************************************
+    p.lpfilt = BYB_Filter(p.sampleRate, [0,40], 'low');
+    
     sp = subplot(3,3,[7,8]);
     sp.Title.String = 'Rectified ECG';
     sp.XLabel.String  = 'Time (seconds)';
     sp.YLabel.String = 'amplitude (ADC units ^2)'
     %because it is an object, we can create a second chart object that is
     %independent of the one we created above.
-    p.chartPlot3 = BYB_Chart(p.sampleRate, 5,sp);
+    p.chartPlot3 = BYB_Chart(p.sampleRate, 3,sp);
     
     sp = subplot(3,3,9);
     sp.Title.String = 'mean EMG';
     p.barplot = BYB_BarPlot(sp);
-    p.barplot.Range = [0, 5*10e2];
+    p.barplot.Range = [0, 5*10e3];
    
     
 end

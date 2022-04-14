@@ -7,11 +7,72 @@ function BYB_BCI()
     params.Collecting = false;
     params.handles = buildUI;
     set(params.handles.fig, 'UserData', params);
-    addPaths
     
 
 end
+%%  this is the main function that collects data and impliments the analysis stream
+function runBCI(p)
 
+    p.plotf = figure;
+    p.plotax = axes(figure);
+    
+    p.circBuff = CircularBuffer(p.bufferTime * p.sampleRate);
+    p.chart = BYB_chart(p.sampleRate, 3, p.plotax);
+    
+    p.serialPort.ReadAsyncMode = 'continuous';
+    %write the start collection string to the Arduino
+    %the parameters appear to be mute since the sample rate does not change
+    %and there is only one channel on the device anyway, but we will keep
+    %them since this is sample code from BYB
+    commandStr = sprintf('conf s:10000;c:%i;\n', p.channels);
+    fprintf(p.serialPort,commandStr);%this will initiate sampling on Arduino
+    fprintf('sampling started...\n');
+ 
+    p.packets = 0;
+    
+    %load the parameter data into a different variable (params versus the passed variable p)
+    %just so we can get at the Collecting variable.
+    params = p.handles.fig.UserData;
+    while params.Collecting
+   
+        data = fread(p.serialPort)';
+        p.packets = p.packets + 1;
+        p.handles.collect_packets.Text = sprintf('%i',p.packets);
+        p.handles.collect_time.Text = sprintf('%.2f sec', p.packets * p.bufferTime);
+        drawnow();
+        
+        p.circBuff = p.circBuff.AddChunkToBuffer(data);
+        p.chart.updateChart(p.circBuff.Chunk);
+        
+     %   data = p.circBuff.Chunk;
+        
+        
+      %  data = BYB_unpackData(data);
+      %  sample_offset =  rem(length(data), p.channels);
+      %  if sample_offset > 0;
+      %      data = data(1:end-sample_offset);
+      %  end
+            
+      %  size(data)
+      %  data = reshape(data, p.channels, length(data)/p.channels);
+        
+        %remove the mean of the chunk
+     %  chunk_mean = mean(data,2);
+     %  baseline = repmat(chunk_mean,1,length(data));
+     %   data = data - baseline;
+        
+     %   p.chart_chan1 = p.chart_chan1.updateChart(data(1,:));  
+     %   p.fftplot_chan1 = p.fftplot_chan1.updateChart(data(1,:), [0,100]);
+     
+     %   params = p.handles.fig.UserData;
+        drawnow();
+      
+    end
+    fclose(p.serialPort);
+    delete(p.serialPort);
+    clear s
+
+end
 %% load the stored parameters from disk
 function p = getParams(p)
 %sets teh default parameters
@@ -25,21 +86,18 @@ function p = getParams(p)
    %in seconds of each chunck of data that is collected.  Longer chunks
    %will allow better data processing but will slow down your BCI and
    %shorter chunks will decrease the ability to do some operations like
-   %high pass filtering, but will speed up the refresh rate of your BCI
-   %try to keep this value at or above 200 ms (.2).  Depending on the
-   %amount of plotting you are doing, it will not be able to keep up with
-   %faster speeds
-   p.bufferTime = .2; 
+   %high pass , but will speed up the refresh rate of your BCI
+   p.bufferTime = .1;
    
    %THE FOLLOWING PARAMETERS SHOULD NOT BE CHANGED
     %sample rate is set by the EEG box and cannot be changed externally
     p.channels = 1;
-    p.sampleRate = 1000 / p.channels;
+    p.baseSampleRate = 10000;
+    p.sampleRate = 10000 / p.channels;
     p.serialPort = []; %this is a placeholder and will hold the port address once we open it
     %this is the size of the buffer in points and is calculated from
     %previosuly set values
-   %p.bufferPnts = p.bufferTime * p.sampleRate * 2;
-    p.bufferPnts = p.bufferTime * p.sampleRate * 3; %this allows for including the digital trigger byte
+    p.bufferPnts = p.channels * p.bufferTime * p.baseSampleRate * 2;
 
 end
 
@@ -125,12 +183,7 @@ function callback_startButton(src,~)
     params.handles.collect_status.Text = 'Collecting...';
     params.handles.collect_status.FontColor = [0,.5,0];
     drawnow;
-    params = initializeSerialCommunication(params);
-    params = initializeProcessing(params);
-    params.handles.fig.UserData = params;
-    
-    runBCI(params);
-    
+    initializeCollection(params);
     
 end
 function callback_stopButton(src,~)
@@ -147,7 +200,7 @@ function callback_stopButton(src,~)
     drawnow();
     
 end
-function p = initializeSerialCommunication(p)
+function initializeCollection(p)
 
     %clear out any open serial ports
     x = instrfind;
@@ -158,33 +211,16 @@ function p = initializeSerialCommunication(p)
     %set up communication with the adruino
     p.serialPort  = serial(p.serialPortName);%change this to your com port
     set(p.serialPort,'BaudRate',230400);
-    p.serialPort.InputBufferSize = p.bufferPnts;  %multiply by 3 because each sample is two bytes and the digial trigger is 1
-    p.serialPort.Terminator = '';
+    p.serialPort.InputBufferSize = p.bufferPnts + 2;
 
     %open the port and make sure it worked
     fopen(p.serialPort);
     fprintf('The status of communications is %s\n',p.serialPort.Status);
-
     
-end
-function addPaths()
-
- thisPath = mfilename('fullpath');
- indx = strfind(thisPath, filesep);
- thisPath = thisPath(1:max(indx)-1);
- 
- extensionsPath  = fullfile(thisPath, 'Extensions');
- pathCell = strsplit(path, pathsep);
- if ispc  % Windows is not case-sensitive
-  onPath = any(strcmpi(extensionsPath, pathCell));
-else
-  onPath = any(strcmp(extensionsPath, pathCell));
- end
-if ~onPath
-    addpath(extensionsPath)
-end
- 
-
+%    p = initializeProcesses(p);
+    
+    runBCI(p);
+    
 end
 
 

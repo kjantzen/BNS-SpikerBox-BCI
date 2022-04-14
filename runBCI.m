@@ -15,9 +15,12 @@ function runBCI(p)
     %just so we can get at the Collecting variable.
     params = p.handles.fig.UserData;
 
+    tic
     while params.Collecting
    
         data = fread(p.serialPort)';
+        toc
+        tic
         p.packets = p.packets + 1;
       
         p.handles.collect_packets.Text = sprintf('%i',p.packets);
@@ -25,12 +28,6 @@ function runBCI(p)
 
         data = BYB_UnpackData(data);
      
-        
-        %remove the mean of the chunk
-        chunk_mean = mean(data');
-        baseline = repmat(chunk_mean',1,length(data));
-        data = data - baseline;
-        
         p.chartPlot1 = p.chartPlot1.UpdateChart(data);  
         p.fftPlot1 = p.fftPlot1.updateChart(data, [0,100]);
         
@@ -38,7 +35,9 @@ function runBCI(p)
         p.chartPlot2 = p.chartPlot2.UpdateChart(data);
         p.fftPlot2 = p.fftPlot2.updateChart(data, [0,100]);
         
+        data = data - mean(data);
         data = data.^2;
+        data = p.lpfilt.filter(data);
         p.chartPlot3 = p.chartPlot3.UpdateChart(data);
         
         p.barplot.Value = (mean(data)); 
