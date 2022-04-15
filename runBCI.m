@@ -48,6 +48,7 @@ function runBCI(p)
     
     fclose(p.serialPort);
     delete(p.serialPort);
+    
  
 
 end

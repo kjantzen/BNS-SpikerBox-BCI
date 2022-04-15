@@ -62,9 +62,7 @@ function h = buildUI()
     h.fig.Name = 'BYB BCI';
 
     h.menu_config = uimenu('Configure');
-    h.menu_port = uimenu('Parent', 'h.menu_config', 'Text', 'Port');
-    h.menu_chunk = uimenu('Parent', 'h.menu_config', 'Text', 'Packet Length');
-    
+    h.en
 
     h.panel_time = uipanel('Parent', h.fig, ...
         'Title', 'Duration',...
