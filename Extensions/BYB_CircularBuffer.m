@@ -1,20 +1,23 @@
-classdef CircularBuffer
+classdef BYB_CircularBuffer
     properties
-        EEGBuffer
-        EventBuffer
-        BufferLength
-        EEGChunk
-        EventChunk
-        ChunkLength
-        NextWriteIndex
-        NextReadIndex
-        UnreadChunks  %this is the number of chunks that have not been read out
-        MaxChunks
-        ErpLimits = [];
-        ReturnERPTrial = false;
+        EEGBuffer   %the main circular buffer
+        BufferLength     %the length of the buffer in samples
+        EEGChunk    %the incoming data chunk
+        ChunkLength     %number of samples in the chunk
+        NextWriteIndex  %to keep track of where to write in the buffer
+        NextReadIndex   %not currently used
+        MaxChunks   %the number of chunks to collect before wrapping the buffer
+        Event.Value = 0;    %keep track of the digital trigger
+        Event.Index = 0;
+        ReturnBuffer            %the data to send back from the buffer
+        ReturnBufferLength     %this is the length of the buffer to return 
+        %                        which can be equal to or greater than
+        %                       the ChunkLength.  If larger than the
+        %                       chunklength, data from previous chunks will
+        %                       be added.
     end
     methods
-        function obj = CircularBuffer(ChunkLength, varargin)
+        function obj = BYB_CircularBuffer(ChunkLength, varargin)
         %constructor method for creating an instance of the circular buffer class
         %
         %buffer = CircularBuffer(ChunkLength) will create a circular buffer
@@ -36,6 +39,15 @@ classdef CircularBuffer
         %
         %
             obj.ChunkLength = ChunkLength;
+            if nargin < 3
+                obj.ReturnBufferLength = ChunkLength;
+            elseif
+                obj.ReturnBufferLength = varargin{3}
+                if obj.ReturnBufferLength < ChunkLength
+                    warning('Return buffer length cannot be smaller than the chunk size! Reset to ChunkLength');
+                    obj.ReturnBufferLength = ChunkLength;
+                end
+            end
             if nargin < 2
                 %default to a buffer length that is 10 times the length of
                 %the individual data chunks
@@ -49,16 +61,33 @@ classdef CircularBuffer
             obj.BufferLength = ChunkLength * obj.MaxChunks;
             %initialize the buffer and write index
             obj.EEGBuffer = zeros(1,obj.BufferLength);
-            obj.EventBuffer = uint8(zeros(1,obj.BufferLength));
+            obj.ReturnBuffer = zeros(1,obj.ReturnBufferLength);
             obj.NextWriteIndex = 1;
             obj.NextReadIndex = 1;
-            obj.UnreadChunks = 0;
+
+            if obj.ReturnBufferLength > obj.BufferLength
+                warning('Return buffer length cannot be larger than the circular buffer size! Reset to max');
+                obj.ReturnBufferLength = obj.BufferLength;
+            end
+       
         end
         function obj = AddChunkToBuffer(obj,rawdata)
         %function for adding a new chunk of data to the circular buffer
             
             %use the internal function to convert the data to 16 bit
-            [obj.EEGChunk, obj.EventChunk] = obj.unpack(rawdata);
+            [obj.EEGChunk, Event] = obj.unpack(rawdata);
+
+            %get the first event
+            %and assign it to the event item
+            [v, i] = find(Event, 1);
+            if ~isempty(v)
+                obj.Event.Value = v;
+                obj.Event.Index = i;
+            else 
+                obj.Event.Value = 0;
+                obj.Event.Value = 0;
+            end
+
             %sometimes there are bytes missing
             actualChunkLength = length(obj.Chunk);
             %add the chunk of data to the circular buffer
@@ -70,13 +99,21 @@ classdef CircularBuffer
             if obj.NextWriteIndex > obj.BufferLength
                 obj.NextWriteIndex = 1;
             end
-        
+
+            %put the desired amount of data on the returnbuffer
+            indx = obj.NextWriteIndex - obj.ReturnBufferLength - 1;
+            if indx > 0 %data are contiguous in the buffer
+                obj.ReturnBuffer = obj.EEGBuffer(indx:indx + obj.ReturnBufferLength);
+            else
+                obj.ReturnBuffer(1:-indx) = obj.EEGBuffer(end+indx+1:end);
+                obj.ReturnBuffer(-indx+1:obj.ReturnBufferLength) = obj.EEGBuffer(1:obj.ReturnBufferLength +indx);
+            end  
         end
       
-        
     end
+   
     methods (Access = private)
-        function 
+         
         function [EEG, event] = unpack(obj,data)
             %convert the data packet to unsigned integers
             data = uint8(data);
@@ -108,8 +145,9 @@ classdef CircularBuffer
                         intout = intout + uint16(uint8(data(i)));
                         EEG = [EEG intout];
                         i = i + 1;
+
                         intout = uint8(data(i)); %could use a mask here for only hte 3 lsb if we get noise on the channel
-                        event = [event,intout];
+                        obj. = [event,intout];
                     end
                     i = i+1;
              end
