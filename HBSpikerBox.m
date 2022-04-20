@@ -86,13 +86,17 @@ classdef HBSpikerBox
           
         end
         function obj = Start(obj)
-            obj.SerialPort.Flush
+            obj.SerialPort.flush
             obj.Collecting = true;
             configureCallback(obj.SerialPort,"byte",obj.InputBufferSamples * 3, @obj.readSerialCallback);
         end
         function obj = Stop(obj)
             obj.Collecting = false;
-             configureCallback(obj.SerialPort,"off");
+            configureCallback(obj.SerialPort,"off");
+        end
+        function delete(obj)
+            delete(obj.SerialPort);  %make sure the serial port object is deleted
+
         end
  
     end
@@ -131,7 +135,7 @@ classdef HBSpikerBox
 
          end
          %covert data from the input stream to samples
-         function [EEG, Event] = UnpackData(data)
+         function [EEG, Event] = UnpackData(obj, data)
 
              %convert the data packet to unsigned integers
              data = uint8(data);
