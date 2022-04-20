@@ -6,7 +6,7 @@ function runBCI(p)
     %the parameters appear to be mute since the sample rate does not change
     %and there is only one channel on the device anyway, but we will keep
     %them since this is sample code from BYB
-    fprintf(p.serialPort,'conf s:%i;c:2;\n', p.sampleRate);%this will initiate sampling on Arduino
+    fprintf(p.serialPort,'conf s:%i;c:1;\n', p.sampleRate);%this will initiate sampling on Arduino
     fprintf('sampling started...\n');
  
     p.packets = 0;
@@ -15,12 +15,9 @@ function runBCI(p)
     %just so we can get at the Collecting variable.
     params = p.handles.fig.UserData;
 
-    tic
     while params.Collecting
    
         data = fread(p.serialPort)';
-        toc
-        tic
         p.packets = p.packets + 1;
       
         p.handles.collect_packets.Text = sprintf('%i',p.packets);
