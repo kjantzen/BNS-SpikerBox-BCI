@@ -2,47 +2,40 @@ function BYB_BCI()
 %main function that loads the parameters
 %and builds the UI
 
-    params = [];
-    params = getParams(params);
-    params.Collecting = false;
-    params.handles = buildUI;
-    set(params.handles.fig, 'UserData', params);
+    p = initializeParameters();
+    p.handles = buildUI;
+    set(p.handles.fig, 'UserData', p);
     addPaths
     
+end
+%
+function p = initializeParameters()
+    %call this function whenever some key parameters list below changes
+
+    %hard code these for now, but give the option to select them from a
+    %user interface later
+    
+    ports = serialportlist;
+
+    p.serialPortName = ports(3);
+    p.bufferDuration = 0.2;
+
+    %also hard code the two functions for initializing the data processing
+    %and for handling the data stream.  These also could be selectable
+    %using the interface
+    p.DataInitializer = @initializeProcessing;
+    p.DataHandler = @DataHandler;
+
+    %create the spiker box object here
+    %first delete any existing one that may exist
+    if isfield(p, 'SpikerBox')
+        delete(p.SpikerBox);
+    end
+    p.SpikerBox = HBSpikerBox(p.serialPortName, p.bufferDuration, @p.DataHandler);
+    p.initializeProcessing;
+
 
 end
-
-%% load the stored parameters from disk
-function p = getParams(p)
-%sets teh default parameters
-%for now just change the parameters you want to update and restart the
-%program.
-
-%these are the only two parameters that are changeable right now.
-
-   p.serialPortName = 'COM3'; %the name of the port to configure
-   %the size of the buffer to record from the device.  This is the length
-   %in seconds of each chunck of data that is collected.  Longer chunks
-   %will allow better data processing but will slow down your BCI and
-   %shorter chunks will decrease the ability to do some operations like
-   %high pass filtering, but will speed up the refresh rate of your BCI
-   %try to keep this value at or above 200 ms (.2).  Depending on the
-   %amount of plotting you are doing, it will not be able to keep up with
-   %faster speeds
-   p.bufferTime = .2; 
-   
-   %THE FOLLOWING PARAMETERS SHOULD NOT BE CHANGED
-    %sample rate is set by the EEG box and cannot be changed externally
-    p.channels = 1;
-    p.sampleRate = 1000 / p.channels;
-    p.serialPort = []; %this is a placeholder and will hold the port address once we open it
-    %this is the size of the buffer in points and is calculated from
-    %previosuly set values
-   %p.bufferPnts = p.bufferTime * p.sampleRate * 2;
-    p.bufferPnts = p.bufferTime * p.sampleRate * 3; %this allows for including the digital trigger byte
-
-end
-
 %% function to create the simple user interface
 function h = buildUI()
     
@@ -121,55 +114,55 @@ function h = buildUI()
 end
 function callback_startButton(src,~)
  
+    %get the handle to the figure
     fig = ancestor(src, 'figure', 'toplevel');
-    params = fig.UserData;
-    params.Collecting = true;
-    fig.UserData = params;
+
+    %get the data structure from the figures user data
+    p = fig.UserData;
+
+    %disable this button since we are toggling states
     src.Enable = 'off';
-    params.handles.button_stop.Enable = 'on';
-    params.handles.collect_status.Text = 'Collecting...';
-    params.handles.collect_status.FontColor = [0,.5,0];
+
+    %enable the stop button
+    p.handles.button_stop.Enable = 'on';
+    p.handles.collect_status.Text = 'Collecting...';
+    p.handles.collect_status.FontColor = [0,.5,0];
+
+    %update the display
     drawnow;
-    params = initializeSerialCommunication(params);
-    params = initializeProcessing(params);
-    params.handles.fig.UserData = params;
-    
-    runBCI(params);
-    
+
+    %turn on acquisition in the SpikerBox object
+    p.SpikerBox = p.SpikerBox.Start();
+
+    %save the data back to the figures user data
+    fig.UserData = p;
+
     
 end
 function callback_stopButton(src,~)
  
+    %get a handle to the figure
     fig = ancestor(src, 'figure', 'toplevel');
-    params = fig.UserData;
 
-    params.Collecting = false;
-    fig.UserData = params;
+    %get all the stored data from the figures user data storage
+    p = fig.UserData;
+
+    %toggle the state of this button to off
     src.Enable = 'off';
-    params.handles.button_start.Enable = 'on';
-    params.handles.collect_status.Text = 'Collection stopped';
-    params.handles.collect_status.FontColor = 'r';
+
+    %turn on the start button
+    p.handles.button_start.Enable = 'on';
+    p.handles.collect_status.Text = 'Collection stopped';
+    p.handles.collect_status.FontColor = 'r';
+
+    %stop the data collection process
+    p.SpikerBox = p.SpikerBox.Stop();
+
+    %update the display
     drawnow();
     
-end
-function p = initializeSerialCommunication(p)
-
-    %clear out any open serial ports
-    x = instrfind;
-    delete(x);
-    clear x;
-    
-    p = getParams(p);
-    %set up communication with the adruino
-    p.serialPort  = serial(p.serialPortName);%change this to your com port
-    set(p.serialPort,'BaudRate',230400);
-    p.serialPort.InputBufferSize = p.bufferPnts;  %multiply by 3 because each sample is two bytes and the digial trigger is 1
-    p.serialPort.Terminator = '';
-
-    %open the port and make sure it worked
-    fopen(p.serialPort);
-    fprintf('The status of communications is %s\n',p.serialPort.Status);
-
+    %save the data again
+    fig.UserData = p;
     
 end
 function addPaths()
