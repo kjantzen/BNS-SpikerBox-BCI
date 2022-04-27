@@ -1,15 +1,18 @@
 function BYB_BCI()
 %main function that loads the parameters
 %and builds the UI
-
-    p = initializeParameters();
-    p.handles = buildUI;
-    set(p.handles.fig, 'UserData', p);
     addPaths
+
+    p.handles = buildUI;
+    p = initializeParameters(p);  
+ 
+
+    set(p.handles.fig, 'UserData', p);
+   
     
 end
 %
-function p = initializeParameters()
+function p = initializeParameters(p)
     %call this function whenever some key parameters list below changes
 
     %hard code these for now, but give the option to select them from a
@@ -17,13 +20,14 @@ function p = initializeParameters()
     
     ports = serialportlist;
 
-    p.serialPortName = ports(3);
-    p.bufferDuration = 0.2;
+    p.serialPortName = ports(1);
+    p.bufferDuration = 0.25;
+    p.sampleRate = 1000;
 
     %also hard code the two functions for initializing the data processing
     %and for handling the data stream.  These also could be selectable
     %using the interface
-    p.DataInitializer = @initializeProcessing;
+    p.DataInitializer = 'initializeProcessing';
     p.DataHandler = @DataHandler;
 
     %create the spiker box object here
@@ -31,8 +35,10 @@ function p = initializeParameters()
     if isfield(p, 'SpikerBox')
         delete(p.SpikerBox);
     end
-    p.SpikerBox = HBSpikerBox(p.serialPortName, p.bufferDuration, @p.DataHandler);
-    p.initializeProcessing;
+    p.SpikerBox = HBSpikerBox(p.serialPortName, p.bufferDuration, p.DataHandler);
+
+    processObjects  = feval(p.DataInitializer, p);
+    p.SpikerBox.ProcessObjects = processObjects;
 
 
 end
@@ -54,9 +60,9 @@ function h = buildUI()
     h.fig.Position = [0,sz(4)-195,330,170];
     h.fig.Name = 'BYB BCI';
 
-    h.menu_config = uimenu('Configure');
-    h.menu_port = uimenu('Parent', 'h.menu_config', 'Text', 'Port');
-    h.menu_chunk = uimenu('Parent', 'h.menu_config', 'Text', 'Packet Length');
+    h.menu_config = uimenu('Parent',h.fig,'Text','Configure');
+    h.menu_port = uimenu('Parent', h.menu_config, 'Text', 'Port');
+    h.menu_chunk = uimenu('Parent', h.menu_config, 'Text', 'Buffer Length');
     
 
     h.panel_time = uipanel('Parent', h.fig, ...

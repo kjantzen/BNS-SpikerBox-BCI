@@ -19,14 +19,14 @@ classdef BYB_FFTPlot
                 obj.bufferSeconds = BufferSeconds;
             end
             if nargin < 1 
-                obj.sampleRate = 10000;
+                obj.sampleRate = 1000;
             else 
                 obj.sampleRate = SampleRate;
             end
             obj.nyquist = obj.sampleRate /2;
             obj.bufferPoints = obj.bufferSeconds * obj.sampleRate;
             %for speed, make sure the data is a multiple of a power of 2
-            obj.bufferPoints = pow2(netpow2(obj.bufferPoints));
+            obj.bufferPoints = pow2(nextpow2(obj.bufferPoints));
       
             obj.fftPoints = obj.bufferPoints/2+1;
             obj.dataBuffer = zeros(1,obj.bufferPoints);
@@ -36,14 +36,14 @@ classdef BYB_FFTPlot
 
             obj.plotHandle = plot(plotAxis, obj.fAxis, obj.fftData);
             obj.ax = plotAxis;
-            obj.ax.YLabel.String = 'amplitude^2';
+            obj.ax.YLabel.String = 'amplitude';
             obj.ax.XLabel.String = 'frequency (Hz)';
                 
         end
         function obj = computeFFT(obj)
             twoSided = abs(fft(obj.dataBuffer)/obj.bufferPoints);
             obj.fftData  = twoSided(1:obj.bufferPoints/2+1);
-            obj.fftData(2:end-1) = 2 * obj.fftData(2:end-1);
+            obj.fftData(2:end-1) = 2 .* obj.fftData(2:end-1);
         end
         function obj = updateChart(obj, dataChunk, fRange)
             

@@ -9,6 +9,9 @@ classdef BYB_Chart
         sampleRate
         ax
     end
+    properties (Access = private)
+        tempBuffer;
+    end
     methods
         function obj = BYB_Chart(SampleRate, ChartLength, plotAxis)
             %Returns a handle to an chart object for dynamically displaying 
@@ -52,6 +55,7 @@ classdef BYB_Chart
             obj.scrolling = false;
             obj.insertPoint = 1;
             obj.displayPoints = obj.displaySeconds * SampleRate;
+            obj.tempBuffer = zeros(1,obj.displayPoints);
             obj.tAxis = (1:obj.displayPoints)./SampleRate;
             obj.plotHandle = plot(plotAxis, obj.tAxis, zeros(1,obj.displayPoints));
             obj.ax = plotAxis;
@@ -78,17 +82,21 @@ classdef BYB_Chart
             ln = length(dataChunk);
             lt = ln ./ obj.sampleRate;
             d = (obj.insertPoint + ln-1) - obj.displayPoints;
+            %maybe try accessing the ydata only once to improve speed
             if obj.scrolling 
+                
                 obj.plotHandle.YData(1:obj.displayPoints-ln) = obj.plotHandle.YData(ln+1:end);
                 obj.plotHandle.YData(obj.displayPoints-ln+1:obj.displayPoints) = dataChunk;
                 obj.plotHandle.XData = obj.plotHandle.XData + lt;
             elseif d<=0
+          
                 obj.plotHandle.YData(obj.insertPoint: obj.insertPoint + ln-1) = dataChunk;
                 obj.plotHandle.YData(obj.insertPoint + ln: end) = mean(dataChunk);
                 obj.insertPoint = obj.insertPoint + ln;
-            else
+            else 
                 obj.plotHandle.YData(1:obj.displayPoints-ln) = obj.plotHandle.YData(d:obj.displayPoints-ln-1+d);
                 obj.plotHandle.YData(obj.displayPoints-ln+1:obj.displayPoints) = dataChunk;
+         
                 obj.plotHandle.XData = obj.plotHandle.XData + (d./obj.sampleRate);
                 obj.scrolling = true;
             end

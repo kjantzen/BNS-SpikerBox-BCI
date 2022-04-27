@@ -1,10 +1,11 @@
-classdef HBSpikerBox
+classdef HBSpikerBox < handle
     properties
         PortName   %the port for communicating with the spiker box
         InputBufferFilledCallback = [] %called when new data is recieved from the spiker box
         InputBufferDuration = .2 %length of the input buffer in seconds
         InputBufferSamples  %number of samples in the input buffer
         Collecting          %flag used to start and stop acquisition
+        ProcessObjects      %a structure containing the objects used in analysing the data
     end
     properties (Access = private)
         SerialPort
@@ -125,12 +126,12 @@ classdef HBSpikerBox
          %read data from the serial port when the buffer is full
          function readSerialCallback(obj,src, evt)
          
-             inputBytes = read(src, obj.InputBufferSamples, "int8");
+             inputBytes = read(src, obj.InputBufferSamples * 3, "uint8");
              [InputBuffer, Events] = obj.UnpackData(inputBytes);
 
              %send the data to the callback
              if isa(obj.InputBufferFilledCallback, 'function_handle')
-                 obj.InputBufferFilledCallback(InputBuffer, Events);
+                 obj.ProcessObjects = obj.InputBufferFilledCallback(obj.ProcessObjects, InputBuffer, Events);
              end
 
          end
@@ -175,7 +176,7 @@ classdef HBSpikerBox
              end
 
              %return the new data chunk
-             EEG = double(EEG);
+             EEG = int16(EEG);
 
          end
     end
