@@ -2,11 +2,7 @@ function BYB_BCI()
 %main function that loads the parameters
 %and builds the UI
     addPaths
-
     p.handles = buildUI;
-    p = initializeParameters(p);  
- 
-
     set(p.handles.fig, 'UserData', p);
    
     
@@ -27,8 +23,7 @@ function p = initializeParameters(p)
     %also hard code the two functions for initializing the data processing
     %and for handling the data stream.  These also could be selectable
     %using the interface
-    p.DataInitializer = 'initializeProcessing';
-    p.DataHandler = @DataHandler;
+    p.DataHandler = eval(@sampleDataHandler);
 
     %create the spiker box object here
     %first delete any existing one that may exist
@@ -37,8 +32,10 @@ function p = initializeParameters(p)
     end
     p.SpikerBox = HBSpikerBox(p.serialPortName, p.bufferDuration, p.DataHandler);
 
-    processObjects  = feval(p.DataInitializer, p);
-    p.SpikerBox.ProcessObjects = processObjects;
+    %call the initialization version of the data handler, i.e. call it
+    %without passing any data.
+    p.SpikerBox.ProcessObjects = p.DataHandler(p);
+     
 
 
 end
@@ -126,6 +123,9 @@ function callback_startButton(src,~)
     %get the data structure from the figures user data
     p = fig.UserData;
 
+    if ~isfield(p,'SpikerBox')
+            p = initializeParameters(p);  
+    end
     %disable this button since we are toggling states
     src.Enable = 'off';
 
@@ -190,5 +190,22 @@ end
  
 
 end
+function makeNewDataHandlerFromTemplate(scriptName)
 
+   scriptname = sprintf('%s.m', scriptname);
+   fid = fopen(scriptname, 'wt');
+  
+fprintf('%Generic data handler template')
+fprintf(fid, 'function outStruct = sampleDataHandler(inStruct, varargin)\n');
+fprintf(fid, '\tif nargin == 1');
+fprintf(fid, '\t\toutSruct = initialize(inStruct);');
+fprintf(fid, '\telse\n\t\toutStruct = analyze(p, varargin{1}, varargin{2});\n\tend');
+fprintf(fid, '%this function gets called when data is passed to the handler');
+fprintf(fid, 'function p = analyze(p,data, event)\nend\n');
+fprintf(fid, 'function p = initialize(p)\nend\n');
+
+fclose(fid);
+edit(scriptname);
+
+end
 

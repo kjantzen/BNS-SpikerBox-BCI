@@ -1,6 +1,5 @@
 function p = DataHandler(p,data, event)
-tic
-%       p.handles.outputFigure.Visible = 'off';
+
         data = data - mean(data);
         p.chartPlot1 = p.chartPlot1.UpdateChart(data);  
         p.fftPlot1 = p.fftPlot1.updateChart(data, [0,100]);
@@ -15,7 +14,5 @@ tic
         p.chartPlot3 = p.chartPlot3.UpdateChart(data);
         p.barplot.Value = (mean(data)); 
 
- %p.handles.outputFigure.Visible = 'on';
- %drawnow
-toc     
+
 end
