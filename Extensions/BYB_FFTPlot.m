@@ -25,6 +25,9 @@ classdef BYB_FFTPlot
             end
             obj.nyquist = obj.sampleRate /2;
             obj.bufferPoints = obj.bufferSeconds * obj.sampleRate;
+            %for speed, make sure the data is a multiple of a power of 2
+            obj.bufferPoints = pow2(netpow2(obj.bufferPoints));
+      
             obj.fftPoints = obj.bufferPoints/2+1;
             obj.dataBuffer = zeros(1,obj.bufferPoints);
             
