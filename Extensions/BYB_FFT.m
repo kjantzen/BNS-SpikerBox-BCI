@@ -1,6 +1,5 @@
 classdef BYB_FFT
     properties 
-        fAxis           %the current time axis to display
         sampleRate
         bufferSeconds
         bufferPoints
@@ -8,11 +7,19 @@ classdef BYB_FFT
         fftData
         fftPoints
         nyquist
+        bins
+    end
+    properties (Constant)
+        freqBinNames = {'delta', 'theta', 'alpha', ;'beta1', 'beta2', 'gamma'}
+        freqBinRange = [0, 3; 3, 8; 8, 12; 12,20; 20; 20, 30];
+    end
+    properties (Hidden)
+        freqBinPnts
     end
     methods
         function obj = BYB_FFT(SampleRate, BufferSeconds)
             if nargin < 2
-                obj.bufferSeconds = 3;
+                obj.bufferSeconds = 1;
             else
                 obj.bufferSeconds = BufferSeconds;
             end
@@ -23,29 +30,28 @@ classdef BYB_FFT
             end
             obj.nyquist = obj.sampleRate /2;
             obj.bufferPoints = obj.bufferSeconds * obj.sampleRate;
+            obj.bufferPoints = pow2(nextpow2(obj.bufferPoints));
+
             obj.fftPoints = obj.bufferPoints/2+1;
             obj.dataBuffer = zeros(1,obj.bufferPoints);
             
             obj.fAxis = obj.sampleRate * (0:(obj.bufferPoints/2))/obj.bufferPoints;
-            obj.fftData = zeros()
+            obj.fftData = zeros();
+
+            %convert the bin range values to actual offsets into the fft
+            %array
+            obj.freqBinPnts = obj.freqBinRange * obj.bufferPoints / obj.sampleRate;
                 
         end
-        function obj = updateChart(obj, dataChunk, fRange)
-            
-            ln = length(dataChunk);
-            obj.dataBuffer(1:obj.bufferPoints-ln) = obj.dataBuffer(ln + 1: obj.bufferPoints);
-            obj.dataBuffer(obj.bufferPoints-ln+1:obj.bufferPoints) = dataChunk;
-            obj = computeFFT(obj);
-            obj.plotHandle.YData = obj.fftData;
-      
-            obj.ax.XLim = fRange/obj.nyquist * length(obj.fftData);
-            drawnow();
-          
-        end
-        function obj = computeFFT(obj)
+    
+        function obj = FFT(obj)
             twoSided = abs(fft(obj.dataBuffer)/obj.bufferPoints);
             obj.fftData  = twoSided(1:obj.bufferPoints/2+1);
             obj.fftData(2:end-1) = 2 * obj.fftData(2:end-1);
+
+            for ii = 1:size(obj.freqBinPnts, 1);
+                obj.bins(ii) = mean(obj.fftData(obj.freqBinPnts(ii,1)+1 : obj.freqBinPnts(ii,2)));
+            end
         end
  
     end
