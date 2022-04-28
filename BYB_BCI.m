@@ -1,6 +1,8 @@
 function BYB_BCI()
 %main function that loads the parameters
 %and builds the UI
+
+    makeNewDataHandlerFromTemplate('test3')
     addPaths
     p.handles = buildUI;
     set(p.handles.fig, 'UserData', p);
@@ -171,41 +173,57 @@ function callback_stopButton(src,~)
     fig.UserData = p;
     
 end
+%%
 function addPaths()
 
  thisPath = mfilename('fullpath');
  indx = strfind(thisPath, filesep);
  thisPath = thisPath(1:max(indx)-1);
  
- extensionsPath  = fullfile(thisPath, 'Extensions');
+ newFolder{1}  = fullfile(thisPath, 'Extensions');
+ newFolder{2}  = fullfile(thisPath, 'Handlers');
+ 
  pathCell = strsplit(path, pathsep);
- if ispc  % Windows is not case-sensitive
-  onPath = any(strcmpi(extensionsPath, pathCell));
-else
-  onPath = any(strcmp(extensionsPath, pathCell));
+ for ii = 1:length(newFolder)
+     if ispc  % Windows is not case-sensitive
+      onPath = any(strcmpi(newFolder{ii}, pathCell));
+    else
+      onPath = any(strcmp(newFolder{ii}, pathCell));
+     end
+    if ~onPath
+        addpath(newFolder{ii})
+    end
  end
-if ~onPath
-    addpath(extensionsPath)
-end
  
 
 end
+%%
 function makeNewDataHandlerFromTemplate(scriptName)
 
-   scriptname = sprintf('%s.m', scriptname);
-   fid = fopen(scriptname, 'wt');
+scriptName = sprintf('%s.m', scriptName);
+
+homePath = mfilename("fullpath");
+[homePath,~,~] = fileparts(homePath);
+newFile = fullfile(homePath, 'Handlers', scriptName);
+if ~isempty(dir(newFile))
+    msgbox(sprintf('The handler file %s already exists.\n Please choose a different name.', scriptName));
+    return
+end
+fid = fopen(newFile, 'wt');
   
-fprintf('%Generic data handler template')
+
+fprintf(fid, '%%Generic data handler template\n\n');
 fprintf(fid, 'function outStruct = sampleDataHandler(inStruct, varargin)\n');
-fprintf(fid, '\tif nargin == 1');
-fprintf(fid, '\t\toutSruct = initialize(inStruct);');
-fprintf(fid, '\telse\n\t\toutStruct = analyze(p, varargin{1}, varargin{2});\n\tend');
-fprintf(fid, '%this function gets called when data is passed to the handler');
-fprintf(fid, 'function p = analyze(p,data, event)\nend\n');
-fprintf(fid, 'function p = initialize(p)\nend\n');
+fprintf(fid, '\tif nargin == 1\n');
+fprintf(fid, '\t\toutSruct = initialize(inStruct);\n');
+fprintf(fid, '\telse\n\t\toutStruct = analyze(p, varargin{1}, varargin{2});\n\tend\n\n');
+fprintf(fid, '%%this function gets called when data is passed to the handler\n');
+fprintf(fid, 'function p = analyze(p,data, event)\n\n\t%%your analysis code goes here\nend\n\n');
+fprintf(fid, '%%this function gets called when the analyse process is initialized\n');
+fprintf(fid, 'function p = initialize(p)\n%%your initialization code goes here\nend\n');
 
 fclose(fid);
-edit(scriptname);
+edit(newFile);
 
 end
 
