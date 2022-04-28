@@ -101,20 +101,15 @@ function h = buildUI()
         'HorizontalAlignment', 'center',...
         'VerticalAlignment', 'bottom');
  
+    
     h.button_start = uibutton('Parent', h.fig,...
         'Position', [10,110,160,40],...
-        'BackgroundColor',[.1,.8,.1],...
-        'Text','Initialize Acquisition',...
-        'ButtonPushedFcn',@callback_initButton);
-
-    h.button_start = uibutton('Parent', h.fig,...
-        'Position', [10,60,160,40],...
         'BackgroundColor',[.1,.8,.1],...
         'Text','Start Acquisition',...
         'ButtonPushedFcn',@callback_startButton);
     
      h.button_stop = uibutton('Parent', h.fig,...
-        'Position', [10,10,160,40],...
+        'Position', [10,60,160,40],...
         'BackgroundColor',[.8,.1,.1],...
         'FontColor', 'w',...
         'Text','Stop Acquisition',...
@@ -130,15 +125,19 @@ function callback_initButton(src, ~)
     p = fig.UserData;
     p = initializeParameters(p);  
     
-    p.handles.button_start.Enable = 'on';
+    %disable this button since we are toggling states
+    src.Enable = 'off';
 
     %enable the stop button
-    p.handles.button_stop.Enable = 'false';
-    p.handles.collect_status.Text = 'Ready to Collect';
+    p.handles.button_stop.Enable = 'on';
+    p.handles.collect_status.Text = 'Collecting...';
     p.handles.collect_status.FontColor = [0,.5,0];
 
     %update the display
     drawnow;
+
+    %turn on acquisition in the SpikerBox object
+    p.SpikerBox = p.SpikerBox.Start();
 
     %save the data back to the figures user data
     fig.UserData = p;
@@ -153,9 +152,11 @@ function callback_startButton(src,~)
     %get the data structure from the figures user data
     p = fig.UserData;
 
+    if ~isfield(p,'SpikerBox')
+            p = initializeParameters(p);  
+    end
     %disable this button since we are toggling states
     src.Enable = 'off';
-    p.handles.button_init.Enable = 'off';
 
     %enable the stop button
     p.handles.button_stop.Enable = 'on';
@@ -186,7 +187,6 @@ function callback_stopButton(src,~)
 
     %turn on the start button
     p.handles.button_start.Enable = 'on';
-    p.handles.button_init.Enable = 'on';
     p.handles.collect_status.Text = 'Collection stopped';
     p.handles.collect_status.FontColor = 'r';
 
