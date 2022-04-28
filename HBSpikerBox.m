@@ -12,6 +12,7 @@ classdef HBSpikerBox < handle
     end
     properties (Constant = true)
         SampleRate = 1000;
+        ADC2MV = 1.27281e-3;
     end
 
     methods
@@ -176,7 +177,7 @@ classdef HBSpikerBox < handle
              end
 
              %return the new data chunk
-             EEG = int16(EEG);
+             EEG = double(EEG) .* obj.ADC2MV;
 
          end
     end
