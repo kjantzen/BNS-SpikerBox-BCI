@@ -36,7 +36,15 @@ function p = initializeParameters(p)
     %also hard code the two functions for initializing the data processing
     %and for handling the data stream.  These also could be selectable
     %using the interface
-    p.DataHandler = eval('@sampleDataHandler');
+    if ~isfield(p, 'handlerName') || isempty(p.handlerName)
+        p.handlerFile = loadHandler([],[]);
+    end
+    if isempty(p.handlerName)
+        msgbox('No valid handler file was identified');
+        return;
+    end
+    p.DataHandler = eval(sprintf('@%s', p.handlerName));
+
 
     %create the spiker box object here
     %first delete any existing one that may exist
@@ -70,7 +78,7 @@ function h = buildUI()
     end
     
     h.fig = uifigure;
-    h.fig.Position = [0,sz(4)-300,330,170];
+    h.fig.Position = [0,sz(4)-300,400,170];
     h.fig.Name = 'BYB BCI';
 
     h.menu_config = uimenu('Parent',h.fig,'Text','Configure');
@@ -94,43 +102,37 @@ function h = buildUI()
         end
     end
 
-    h.panel_time = uipanel('Parent', h.fig, ...
-        'Title', 'Duration',...
-        'Units', 'pixels',...
-        'Position', [180,10,140,40]);
- 
-    h.panel_packets = uipanel('Parent', h.fig, ...
-        'Title', 'Packets Collected',...
-        'Units', 'pixels',...
-        'Position', [180,60,140,40]);
+  h.menu_handler = uimenu('Parent', h.fig, 'Text', 'Handler');
+  h.menu_loadhandler = uimenu('Parent', h.menu_handler, 'Text', 'Load', 'Callback', @callback_loadHandler);
+  h.menu_newhandler = uimenu('Parent', h.menu_handler, 'Text', 'New','Callback', @callback_newHandlerFile);
+  
    
     %panel for the current acquisition status
     h.panel_status = uipanel('Parent', h.fig, ...
         'Title', 'Acquisition status',...
         'Units', 'pixels',...
-        'Position', [180,110,140,40]);
+        'Position', [180,110,200,40]);
     
     h.collect_status = uilabel('Parent', h.panel_status,...
         'Text', 'Collection Stopped',...
         'FontColor', 'r',...
-        'Position', [0,0,140,20],...
+        'Position', [0,0,200,20],...
         'HorizontalAlignment', 'center',...
-        'VerticalAlignment', 'bottom');
-    
-    h.collect_packets = uilabel('Parent', h.panel_packets,...
-        'Text', '0',...
-        'FontColor', 'b',...
-        'Position', [0,0, 140,20],...
-        'HorizontalAlignment', 'center',...
-        'VerticalAlignment', 'bottom');
+        'VerticalAlignment', 'center');
   
-    h.collect_time = uilabel('Parent', h.panel_time,...
-        'Text', '0',...
+   h.panel_handler = uipanel('Parent', h.fig, ...
+        'Title', 'Handler name',...
+        'Units', 'pixels',...
+        'Position', [180,50,200,40]);
+    
+    h.label_handler = uilabel('Parent', h.panel_handler,...
+        'Text', 'No Handler loaded',...
         'FontColor', 'b',...
-        'Position', [0,0,140,20],...
+        'Position', [0,0,200,20],...
         'HorizontalAlignment', 'center',...
-        'VerticalAlignment', 'bottom');
- 
+        'VerticalAlignment', 'center');
+
+
     h.button_init = uibutton('Parent', h.fig,...
         'Position', [10,110,160,40],...
         'BackgroundColor',[.1,.1,.8],...
@@ -300,6 +302,7 @@ function  callback_port_menu(src, evt)
 
     if isfield(p, 'SpikerBox') && p.SpikerBox.Collecting
         callback_stopButton(src, evt);
+        p.handles.button_start.Enable = 'off';
     end
 
 
@@ -318,7 +321,54 @@ function  callback_buffer_menu(src, evt)
 
     if isfield(p, 'SpikerBox') && p.SpikerBox.Collecting
         callback_stopButton(src, evt);
+        p.handles.button_start.Enable = 'off';
     end
 
+
+end
+function callback_newHandlerFile(src, event)
+
+    scriptName  = inputdlg('Provde a unique name for the new data handler', 'New Handler');
+    if ~isempty(scriptName{1})
+        makeNewDataHandlerFromTemplate(scriptName{1});
+    end
+
+    
+end
+%%
+function callback_loadHandler(src,evt)
+
+
+    fig = ancestor(src, 'figure', 'toplevel');
+    p = fig.UserData;
+    hname = loadHandler(p);
+    if ~isempty(hname)
+        p.handlerName = hname;
+    end
+    fig.UserData = p;
+    
+    
+
+end
+
+function handlerName = loadHandler(p)
+
+
+    thisPath = mfilename('fullpath');
+    indx = strfind(thisPath, filesep);
+    thisPath = thisPath(1:max(indx)-1); 
+    handlerPath = fullfile(thisPath, 'Handlers');
+    fileFilter = fullfile(handlerPath, '*.m');
+
+
+    [handlerName, hpath,~] = uigetfile(fileFilter, 'Select a Handler file');
+    
+    if isequal(handlerName, 0) || isempty(dir(fullfile(hpath, handlerName)))
+        p.handles.label_handler.Text = 'No Hander loaded';
+        handlerName = [];
+    else
+        p.handles.label_handler.Text = handlerName;
+    end
+   
 
 end
