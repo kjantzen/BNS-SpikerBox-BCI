@@ -17,14 +17,14 @@ function p = initializeParameters(p)
     %user interface later
     
     
-    for ii = 1:length(p.handle.port_option)
+    for ii = 1:length(p.handles.port_option)
         if p.handles.port_option(ii).Checked
             p.serialPortName = p.handles.port_option(ii).Text;
             break
         end
     end
 
-     for ii = 1:length(p.handle.chunk_option)
+     for ii = 1:length(p.handles.chunk_option)
         if p.handles.chunk_option(ii).Checked
             p.bufferDuration = str2double(p.handles.chunk_option(ii).Text);
             break
@@ -85,7 +85,7 @@ function h = buildUI()
     end
 
     h.menu_chunk = uimenu('Parent', h.menu_config, 'Text', 'Buffer Length');
-    for ii = 1:length(ports)
+    for ii = 1:length(buff_durations)
         h.chunk_option(ii) = uimenu('Parent', h.menu_chunk, ...
             'Text', num2str(buff_durations(ii)), ...
             'Callback', @callback_buffer_menu);
