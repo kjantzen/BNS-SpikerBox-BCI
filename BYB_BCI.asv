@@ -2,7 +2,7 @@ function BYB_BCI()
 %main function that loads the parameters
 %and builds the UI
 
-    makeNewDataHandlerFromTemplate('test3')
+   % makeNewDataHandlerFromTemplate('test3')
     addPaths
     p.handles = buildUI;
     set(p.handles.fig, 'UserData', p);
@@ -16,7 +16,7 @@ function p = initializeParameters(p)
     %hard code these for now, but give the option to select them from a
     %user interface later
     
-    ports = serialportlist;
+    
 
     p.serialPortName = ports(1);
     p.bufferDuration = 0.25;
@@ -46,6 +46,7 @@ function h = buildUI()
     
 
     sz = get(0, 'ScreenSize');
+    ports = serialportlist;
   
     %see if the figure already exists
     %if it does not create it and if it does clear it and start over
@@ -56,11 +57,17 @@ function h = buildUI()
     end
     
     h.fig = uifigure;
-    h.fig.Position = [0,sz(4)-195,330,170];
+    h.fig.Position = [0,sz(4)-300,330,170];
     h.fig.Name = 'BYB BCI';
 
     h.menu_config = uimenu('Parent',h.fig,'Text','Configure');
     h.menu_port = uimenu('Parent', h.menu_config, 'Text', 'Port');
+    for ii = 1:length(ports)
+        h.port_option(ii) = uimenu('Parent', h.menu_port, ...
+            'Text', ports(ii), ...
+            'Callback', @callback_port_menu);
+    end
+
     h.menu_chunk = uimenu('Parent', h.menu_config, 'Text', 'Buffer Length');
     
 
@@ -101,18 +108,26 @@ function h = buildUI()
         'HorizontalAlignment', 'center',...
         'VerticalAlignment', 'bottom');
  
-    
-    h.button_start = uibutton('Parent', h.fig,...
+    h.button_init = uibutton('Parent', h.fig,...
         'Position', [10,110,160,40],...
+        'BackgroundColor',[.1,.1,.8],...
+        'FontColor', 'w', ...
+        'Text','Initialize Acquisition',...
+        'ButtonPushedFcn',@callback_initButton);
+
+    h.button_start = uibutton('Parent', h.fig,...
+        'Position', [10,60,160,40],...
         'BackgroundColor',[.1,.8,.1],...
         'Text','Start Acquisition',...
+        'Enable', 'off',...
         'ButtonPushedFcn',@callback_startButton);
     
      h.button_stop = uibutton('Parent', h.fig,...
-        'Position', [10,60,160,40],...
+        'Position', [10,10,160,40],...
         'BackgroundColor',[.8,.1,.1],...
         'FontColor', 'w',...
         'Text','Stop Acquisition',...
+        'Enable', 'off',...
         'ButtonPushedFcn',@callback_stopButton);
    
 
@@ -125,19 +140,15 @@ function callback_initButton(src, ~)
     p = fig.UserData;
     p = initializeParameters(p);  
     
-    %disable this button since we are toggling states
-    src.Enable = 'off';
+    p.handles.button_start.Enable = 'on';
 
     %enable the stop button
-    p.handles.button_stop.Enable = 'on';
-    p.handles.collect_status.Text = 'Collecting...';
+    p.handles.button_stop.Enable = 'off';
+    p.handles.collect_status.Text = 'Ready to Collect';
     p.handles.collect_status.FontColor = [0,.5,0];
 
     %update the display
     drawnow;
-
-    %turn on acquisition in the SpikerBox object
-    p.SpikerBox = p.SpikerBox.Start();
 
     %save the data back to the figures user data
     fig.UserData = p;
@@ -152,11 +163,9 @@ function callback_startButton(src,~)
     %get the data structure from the figures user data
     p = fig.UserData;
 
-    if ~isfield(p,'SpikerBox')
-            p = initializeParameters(p);  
-    end
     %disable this button since we are toggling states
     src.Enable = 'off';
+    p.handles.button_init.Enable = 'off';
 
     %enable the stop button
     p.handles.button_stop.Enable = 'on';
@@ -187,6 +196,7 @@ function callback_stopButton(src,~)
 
     %turn on the start button
     p.handles.button_start.Enable = 'on';
+    p.handles.button_init.Enable = 'on';
     p.handles.collect_status.Text = 'Collection stopped';
     p.handles.collect_status.FontColor = 'r';
 
@@ -253,4 +263,21 @@ fclose(fid);
 edit(newFile);
 
 end
+%%
+function  callback_port_menu(src, evt)
+    fig = ancestor(src, 'figure', 'toplevel');
 
+    %get all the stored data from the figures user data storage
+    p = fig.UserData;
+
+    for ii = 1:length(p.handles.port_option)
+        p.handles.port_option(ii).Checked = 'off';
+    end
+    src.Checked = 'on';
+
+    if isfield(p, 'SpikerBox') && p.SpikerBox.Collecting
+        callback_stopButton(src, evt)
+        en
+
+
+end

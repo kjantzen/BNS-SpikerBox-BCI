@@ -2,7 +2,7 @@ function BYB_BCI()
 %main function that loads the parameters
 %and builds the UI
 
-    makeNewDataHandlerFromTemplate('test3')
+   % makeNewDataHandlerFromTemplate('test3')
     addPaths
     p.handles = buildUI;
     set(p.handles.fig, 'UserData', p);
@@ -16,10 +16,21 @@ function p = initializeParameters(p)
     %hard code these for now, but give the option to select them from a
     %user interface later
     
-    ports = serialportlist;
+    
+    for ii = 1:length(p.handle.port_option)
+        if p.handles.port_option(ii).Checked
+            p.serialPortName = p.handles.port_option(ii).Text;
+            break
+        end
+    end
 
-    p.serialPortName = ports(1);
-    p.bufferDuration = 0.25;
+     for ii = 1:length(p.handle.chunk_option)
+        if p.handles.chunk_option(ii).Checked
+            p.bufferDuration = str2double(p.handles.chunk_option(ii).Text);
+            break
+        end
+    end
+
     p.sampleRate = 1000;
 
     %also hard code the two functions for initializing the data processing
@@ -46,6 +57,9 @@ function h = buildUI()
     
 
     sz = get(0, 'ScreenSize');
+    ports = serialportlist;
+    buff_durations = [.25, .5, .75, 1, 1.5, 2];
+
   
     %see if the figure already exists
     %if it does not create it and if it does clear it and start over
@@ -56,13 +70,29 @@ function h = buildUI()
     end
     
     h.fig = uifigure;
-    h.fig.Position = [0,sz(4)-195,330,170];
+    h.fig.Position = [0,sz(4)-300,330,170];
     h.fig.Name = 'BYB BCI';
 
     h.menu_config = uimenu('Parent',h.fig,'Text','Configure');
     h.menu_port = uimenu('Parent', h.menu_config, 'Text', 'Port');
+    for ii = 1:length(ports)
+        h.port_option(ii) = uimenu('Parent', h.menu_port, ...
+            'Text', ports(ii), ...
+            'Callback', @callback_port_menu);
+        if ii == 1
+            h.port_option.Checked = 'on';
+        end
+    end
+
     h.menu_chunk = uimenu('Parent', h.menu_config, 'Text', 'Buffer Length');
-    
+    for ii = 1:length(ports)
+        h.chunk_option(ii) = uimenu('Parent', h.menu_chunk, ...
+            'Text', num2str(buff_durations(ii)), ...
+            'Callback', @callback_buffer_menu);
+        if ii == 1
+            h.chunk_option.Checked = 'on';
+        end
+    end
 
     h.panel_time = uipanel('Parent', h.fig, ...
         'Title', 'Duration',...
@@ -101,9 +131,10 @@ function h = buildUI()
         'HorizontalAlignment', 'center',...
         'VerticalAlignment', 'bottom');
  
-    h.button_start = uibutton('Parent', h.fig,...
+    h.button_init = uibutton('Parent', h.fig,...
         'Position', [10,110,160,40],...
-        'BackgroundColor',[.1,.8,.1],...
+        'BackgroundColor',[.1,.1,.8],...
+        'FontColor', 'w', ...
         'Text','Initialize Acquisition',...
         'ButtonPushedFcn',@callback_initButton);
 
@@ -111,6 +142,7 @@ function h = buildUI()
         'Position', [10,60,160,40],...
         'BackgroundColor',[.1,.8,.1],...
         'Text','Start Acquisition',...
+        'Enable', 'off',...
         'ButtonPushedFcn',@callback_startButton);
     
      h.button_stop = uibutton('Parent', h.fig,...
@@ -118,6 +150,7 @@ function h = buildUI()
         'BackgroundColor',[.8,.1,.1],...
         'FontColor', 'w',...
         'Text','Stop Acquisition',...
+        'Enable', 'off',...
         'ButtonPushedFcn',@callback_stopButton);
    
 
@@ -253,4 +286,39 @@ fclose(fid);
 edit(newFile);
 
 end
+%%
+function  callback_port_menu(src, evt)
+    fig = ancestor(src, 'figure', 'toplevel');
 
+    %get all the stored data from the figures user data storage
+    p = fig.UserData;
+
+    for ii = 1:length(p.handles.port_option)
+        p.handles.port_option(ii).Checked = 'off';
+    end
+    src.Checked = 'on';
+
+    if isfield(p, 'SpikerBox') && p.SpikerBox.Collecting
+        callback_stopButton(src, evt);
+    end
+
+
+end
+%%
+function  callback_buffer_menu(src, evt)
+    fig = ancestor(src, 'figure', 'toplevel');
+
+    %get all the stored data from the figures user data storage
+    p = fig.UserData;
+
+    for ii = 1:length(p.handles.chunk_option)
+        p.handles.chunk_option(ii).Checked = 'off';
+    end
+    src.Checked = 'on';
+
+    if isfield(p, 'SpikerBox') && p.SpikerBox.Collecting
+        callback_stopButton(src, evt);
+    end
+
+
+end
