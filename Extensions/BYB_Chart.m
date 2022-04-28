@@ -59,8 +59,6 @@ classdef BYB_Chart
             obj.tAxis = (1:obj.displayPoints)./SampleRate;
             obj.plotHandle = plot(plotAxis, obj.tAxis, zeros(1,obj.displayPoints));
             obj.ax = plotAxis;
-            obj.ax.YLabel.String = 'amplitude';
-            obj.ax.XLabel.String = 'time (seconds)';
                 
         end
         function obj = UpdateChart(obj, dataChunk, plotRange)

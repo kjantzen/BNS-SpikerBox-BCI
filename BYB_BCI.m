@@ -37,7 +37,7 @@ function p = initializeParameters(p)
     %and for handling the data stream.  These also could be selectable
     %using the interface
     if ~isfield(p, 'handlerName') || isempty(p.handlerName)
-        p.handlerFile = loadHandler([],[]);
+        p.handlerFile = loadHandler(p);
     end
     if isempty(p.handlerName)
         msgbox('No valid handler file was identified');
@@ -262,11 +262,11 @@ end
 %%
 function makeNewDataHandlerFromTemplate(scriptName)
 
-scriptName = sprintf('%s.m', scriptName);
+scriptFileName = sprintf('%s.m', scriptName);
 
 homePath = mfilename("fullpath");
 [homePath,~,~] = fileparts(homePath);
-newFile = fullfile(homePath, 'Handlers', scriptName);
+newFile = fullfile(homePath, 'Handlers', scriptFileName);
 if ~isempty(dir(newFile))
     msgbox(sprintf('The handler file %s already exists.\n Please choose a different name.', scriptName));
     return
@@ -275,14 +275,14 @@ fid = fopen(newFile, 'wt');
   
 
 fprintf(fid, '%%Generic data handler template\n\n');
-fprintf(fid, 'function outStruct = sampleDataHandler(inStruct, varargin)\n');
+fprintf(fid, 'function outStruct = %s(inStruct, varargin)\n', scriptName);
 fprintf(fid, '\tif nargin == 1\n');
-fprintf(fid, '\t\toutSruct = initialize(inStruct);\n');
-fprintf(fid, '\telse\n\t\toutStruct = analyze(p, varargin{1}, varargin{2});\n\tend\n\n');
+fprintf(fid, '\t\toutStruct = initialize(inStruct);\n');
+fprintf(fid, '\telse\n\t\toutStruct = analyze(inStruct, varargin{1}, varargin{2});\n\tend\nend\n');
 fprintf(fid, '%%this function gets called when data is passed to the handler\n');
 fprintf(fid, 'function p = analyze(p,data, event)\n\n\t%%your analysis code goes here\nend\n\n');
 fprintf(fid, '%%this function gets called when the analyse process is initialized\n');
-fprintf(fid, 'function p = initialize(p)\n%%your initialization code goes here\nend\n');
+fprintf(fid, 'function p = initialize(p)\n\n%%your initialization code goes here\n\nend\n');
 
 fclose(fid);
 edit(newFile);
@@ -367,7 +367,9 @@ function handlerName = loadHandler(p)
         p.handles.label_handler.Text = 'No Hander loaded';
         handlerName = [];
     else
-        p.handles.label_handler.Text = handlerName;
+        [~, f, ~] = fileparts(handlerName);
+        handlerName = f;
+        p.handles.label_handler.Text = f;
     end
    
 
