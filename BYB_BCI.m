@@ -133,7 +133,7 @@ function callback_initButton(src, ~)
     p.handles.button_start.Enable = 'on';
 
     %enable the stop button
-    p.handles.button_stop.Enable = 'false';
+    p.handles.button_stop.Enable = 'off';
     p.handles.collect_status.Text = 'Ready to Collect';
     p.handles.collect_status.FontColor = [0,.5,0];
 
