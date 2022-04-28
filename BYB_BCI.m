@@ -25,7 +25,7 @@ function p = initializeParameters(p)
     %also hard code the two functions for initializing the data processing
     %and for handling the data stream.  These also could be selectable
     %using the interface
-    p.DataHandler = eval(@sampleDataHandler);
+    p.DataHandler = eval('@sampleDataHandler');
 
     %create the spiker box object here
     %first delete any existing one that may exist

@@ -8,9 +8,9 @@ function outStruct = sampleDataHandler(inStruct, varargin)
 
 %the initializer is called with only one input variable
     if nargin == 1
-        outSruct = initialize(inStruct);
+        outStruct = initialize(inStruct);
     else
-        outStruct = analyze(p, varargin{1}, varargin{2});
+        outStruct = analyze(inStruct, varargin{1}, varargin{2});
     end
 
 end
