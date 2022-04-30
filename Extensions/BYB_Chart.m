@@ -46,8 +46,6 @@ classdef BYB_Chart
             end
             if nargin < 1 
                 error('Please provide a valid sample rate...');
-                obj = [];
-                return;
             else 
                 obj.sampleRate = SampleRate;
             end
@@ -100,7 +98,7 @@ classdef BYB_Chart
             end
             axis(obj.ax,'tight');
             if ~autoScale
-                obj.PlotHandle.YLim = plotRange;
+                obj.ax.YLim = plotRange;
             end
             drawnow();
           
