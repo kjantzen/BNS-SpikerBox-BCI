@@ -4,7 +4,7 @@ classdef BYB_Peaks
         WidthThreshold = 10;    %default of +- 10 ms with a sample rate of 1000Hz
         SmoothPoints = 0;
         AdjustThreshold = false;
-        SearchAcrossChunks = true;
+        SearchAcrossChunks = false;
         Peaks = []
     end
     properties(Access = private)
@@ -64,7 +64,7 @@ classdef BYB_Peaks
             % EXAMPLE
             %   %
             %   create a simulated eye blink
-            %Fs = 1000;
+            %       Fs = 1000;
             %        Si = 1/Fs;
             %        Duration = 4;
             %        
@@ -157,7 +157,7 @@ classdef BYB_Peaks
             %smooth the data if  smoothpoints is not set to zero
             if obj.SmoothPoints > 0
                 [origMax, mIndx] = max(abs(tempBuffer));
-                tempBuffer = smoothdata(tempBuffer, 1, "movmean", obj.SmoothPoints);
+                tempBuffer = smoothdata(tempBuffer, 2, "movmean", obj.SmoothPoints);
                 if obj.AdjustThreshold 
                     newMax = abs(tempBuffer(mIndx));
                     adjRatio = newMax/origMax;
@@ -197,7 +197,7 @@ classdef BYB_Peaks
             
             %initialize a counter for where to look in the possible peak
             %indexes array (ppi)
-            ii = minPosition;
+            ii = minPosition+1;
 
             while ii < maxPosition
          
@@ -208,7 +208,7 @@ classdef BYB_Peaks
 
                 %define a search window around the current point
                 searchPoints = ii-widthThresh:ii+widthThresh;
-
+                searchPoints
                 %look for the maximum value in that region
                 [~, indx] = max(absInput(searchPoints));
                 indx = indx + min(searchPoints) -1;

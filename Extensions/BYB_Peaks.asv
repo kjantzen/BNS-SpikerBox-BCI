@@ -4,7 +4,7 @@ classdef BYB_Peaks
         WidthThreshold = 10;    %default of +- 10 ms with a sample rate of 1000Hz
         SmoothPoints = 0;
         AdjustThreshold = false;
-        SearchAcrossChunks = true;
+        SearchAcrossChunks = false;
         Peaks = []
     end
     properties(Access = private)
@@ -64,7 +64,7 @@ classdef BYB_Peaks
             % EXAMPLE
             %   %
             %   create a simulated eye blink
-            %Fs = 1000;
+            %       Fs = 1000;
             %        Si = 1/Fs;
             %        Duration = 4;
             %        
@@ -157,7 +157,7 @@ classdef BYB_Peaks
             %smooth the data if  smoothpoints is not set to zero
             if obj.SmoothPoints > 0
                 [origMax, mIndx] = max(abs(tempBuffer));
-                tempBuffer = smoothdata(tempBuffer, 1, "movmean", obj.SmoothPoints);
+                tempBuffer = smoothdata(tempBuffer, 2, "movmean", obj.SmoothPoints);
                 if obj.AdjustThreshold 
                     newMax = abs(tempBuffer(mIndx));
                     adjRatio = newMax/origMax;
@@ -167,12 +167,19 @@ classdef BYB_Peaks
 
             %find any peaks
             obj.Peaks = obj.findPeaks(tempBuffer,actualThreshold, obj.WidthThreshold, needsIndexCorrection);
+            
+            %add the baseline back into adjusted value
+            if ~isempty(obj.Peaks)
+                for ii = 1:length(obj.Peaks)
+                    obj.Peaks(ii).value = obj.Peaks(ii).adjvalue + baseline;
+                end
+            end
 
         end
  
     end
     methods (Access = private)
-            function peaks = findPeaks(obj, input, needsCorrection)
+            function peaks = findPeaks(obj, input, ampThresh, widthThresh, needsCorrection)
         
             %to find the peaks we will loop over all values that exceed the
             %threshold and determine if there is a value within the width 
@@ -182,26 +189,26 @@ classdef BYB_Peaks
 
             absInput = abs(input);
 
-            minPosition = obj.WidthThreshold;
-            maxPosition = length(absInput) - obj.WidthThreshold;
+            minPosition = widthThresh;
+            maxPosition = length(absInput) - widthThresh;
        
             peakCount = 0;
             peaks = [];
             
             %initialize a counter for where to look in the possible peak
             %indexes array (ppi)
-            ii = minPosition;
+            ii = minPosition+1;
 
             while ii < maxPosition
          
-                if absInput(ii) < obj.AmampThresh
+                if absInput(ii) < ampThresh
                     ii = ii + 1;
                     continue;
                 end
 
                 %define a search window around the current point
                 searchPoints = ii-widthThresh:ii+widthThresh;
-
+                searchPoints
                 %look for the maximum value in that region
                 [~, indx] = max(absInput(searchPoints));
                 indx = indx + min(searchPoints) -1;
@@ -213,7 +220,7 @@ classdef BYB_Peaks
                     else
                         peaks(peakCount).index = ii;
                     end
-                    peaks(peakCount).value = input(ii);
+                    peaks(peakCount).adjvalue = input(ii);
                     ii = ii + widthThresh;
                 else
                     %if the current point is not the maximum, move the
