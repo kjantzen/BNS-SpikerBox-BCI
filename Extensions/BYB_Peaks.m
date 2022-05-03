@@ -42,24 +42,24 @@ classdef BYB_Peaks
             %   Smoothing will reduce the amplitude of sharp peaks in the
             %   data.  if AdjustThreshold = True, the threhsold will be
             %   adjusted down by multiplying it by 
-            %   (max(abs(preSmooth))/max(abs(postSmooth)). Default = false.
+            %   (max(abs(postSmooth))/max(abs(preSmooth)). Default = false.
             %
             %   SearchAcrossChunks - prepends the last (2 * WidthThreshold)
             %   points from the previous data segment to the current data
-            %   segment to accound for peaks that may have occured at the
+            %   segment to account for possible undetected peaks at the
             %   very end of the previous segment. Default = true;
             %
             %RETURNS
             %   
-            %   Information about identified peaks will be stored in a 
-            %   structure array stored in obj.Peaks.  The array will have
+            %   Information about identified peaks will be in the structure 
+            %   array obj.Peaks.  The array will have
             %   one element per peak identified.  If no peaks were
             %   identified, the array will be empty ([]).
             %   The strucure has the following fields
             %       index - the index or sample into the sample vector at
             %       which the peak was located. A negative index indicated
             %       the peak occured in the previous data segment.
-            %       value - the baseline adjusted value of the sample at the peak.
+            %       adjvalue - the baseline adjusted value of the sample at the peak.
             %
             % EXAMPLE
             %   %
@@ -125,7 +125,7 @@ classdef BYB_Peaks
             %   vector before searching,  If baseline is excluded the
             %   median of the data will be used
             %
-tic
+
             if nargin < 3
                 baseline = median(data);
             end
@@ -167,7 +167,14 @@ tic
 
             %find any peaks
             obj.Peaks = obj.findPeaks(tempBuffer,actualThreshold, obj.WidthThreshold, needsIndexCorrection);
-toc
+            
+            %add the baseline back into adjusted value
+            if ~isempty(obj.Peaks)
+                for ii = 1:length(obj.Peaks)
+                    obj.Peaks(ii).value = obj.Peaks(ii).adjvalue + baseline;
+                end
+            end
+
         end
  
     end
@@ -213,7 +220,7 @@ toc
                     else
                         peaks(peakCount).index = ii;
                     end
-                    peaks(peakCount).value = input(ii);
+                    peaks(peakCount).adjvalue = input(ii);
                     ii = ii + widthThresh;
                 else
                     %if the current point is not the maximum, move the
