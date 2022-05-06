@@ -31,13 +31,13 @@ function p = initializeParameters(p)
         end
     end
 
-    p.sampleRate = 1000;
+    p.sampleRate = 250;
 
     %also hard code the two functions for initializing the data processing
     %and for handling the data stream.  These also could be selectable
     %using the interface
     if ~isfield(p, 'handlerName') || isempty(p.handlerName)
-        p.handlerFile = loadHandler(p);
+        p.handlerName = loadHandler(p);
     end
     if isempty(p.handlerName)
         msgbox('No valid handler file was identified');
@@ -51,7 +51,7 @@ function p = initializeParameters(p)
     if isfield(p, 'SpikerBox')
         delete(p.SpikerBox);
     end
-    p.SpikerBox = HBSpikerBox(p.serialPortName, p.bufferDuration, p.DataHandler);
+    p.SpikerBox = HBSpikerBox(p.serialPortName, p.bufferDuration, p.DataHandler,4);
 
     %call the initialization version of the data handler, i.e. call it
     %without passing any data.

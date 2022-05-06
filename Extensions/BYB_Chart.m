@@ -3,6 +3,7 @@ classdef BYB_Chart
         scrolling       %flag to know whether the plot is srolling yet
         insertPoint     %the current place that data is being inserted into the plot
         plotHandle      %the handle to the actual plot
+
         displaySeconds  %the number of seconds to display in the plot
         displayPoints   %the number of points to display in the plot
         tAxis           %the current time axis to display
@@ -11,6 +12,7 @@ classdef BYB_Chart
     end
     properties (Access = private)
         tempBuffer;
+        eventHandle
     end
     methods
         function obj = BYB_Chart(SampleRate, ChartLength, plotAxis)
@@ -55,11 +57,16 @@ classdef BYB_Chart
             obj.displayPoints = obj.displaySeconds * SampleRate;
             obj.tempBuffer = zeros(1,obj.displayPoints);
             obj.tAxis = (1:obj.displayPoints)./SampleRate;
-            obj.plotHandle = plot(plotAxis, obj.tAxis, zeros(1,obj.displayPoints));
+            h1 = plot(plotAxis, obj.tAxis, zeros(1,obj.displayPoints));
+            h2 = line(plotAxis, obj.tAxis, zeros(1,obj.displayPoints));
+            obj.plotHandle = [h1,h2];
+           % obj.plotHandle = plot(plotAxis, obj.tAxis, zeros(1,obj.displayPoints));
+         %   obj.plotHandle(2) = line(plotAxis, obj.tAxis, zeros(1,obj.displayPoints));
+            obj.plotHandle(2).Color = 'g';
             obj.ax = plotAxis;
                 
         end
-        function obj = UpdateChart(obj, dataChunk, plotRange)
+        function obj = UpdateChart(obj, eegChunk, eventChunk, plotRange)
             %Adds data the the existing plot for this chart object
             %
             %obj = UpdateChart(d) - adds the timeseries data in d to the
@@ -75,27 +82,37 @@ classdef BYB_Chart
             else
                 autoScale = false;
             end
-            ln = length(dataChunk);
+            ln = length(eegChunk);
             lt = ln ./ obj.sampleRate;
             d = (obj.insertPoint + ln-1) - obj.displayPoints;
+            
+            dataChunk = [eegChunk;double(eventChunk)];
             %maybe try accessing the ydata only once to improve speed
+            
             if obj.scrolling 
-                
-                obj.plotHandle.YData(1:obj.displayPoints-ln) = obj.plotHandle.YData(ln+1:end);
-                obj.plotHandle.YData(obj.displayPoints-ln+1:obj.displayPoints) = dataChunk;
-                obj.plotHandle.XData = obj.plotHandle.XData + lt;
+            for ii = 1:2    
+                obj.plotHandle(ii).YData(1:obj.displayPoints-ln) = obj.plotHandle(ii).YData(ln+1:end);
+                obj.plotHandle(ii).YData(obj.displayPoints-ln+1:obj.displayPoints) = dataChunk(ii,:);
+                obj.plotHandle(ii).XData = obj.plotHandle(ii).XData + lt;
+            end
+
             elseif d<=0
-          
-                obj.plotHandle.YData(obj.insertPoint: obj.insertPoint + ln-1) = dataChunk;
-                obj.plotHandle.YData(obj.insertPoint + ln: end) = mean(dataChunk);
+                for ii = 1:2
+                obj.plotHandle(ii).YData(obj.insertPoint: obj.insertPoint + ln-1) = dataChunk(ii,:);
+                obj.plotHandle(ii).YData(obj.insertPoint + ln: end) = mean(dataChunk(ii,:));
+                end
                 obj.insertPoint = obj.insertPoint + ln;
+                
             else 
-                obj.plotHandle.YData(1:obj.displayPoints-ln) = obj.plotHandle.YData(d:obj.displayPoints-ln-1+d);
-                obj.plotHandle.YData(obj.displayPoints-ln+1:obj.displayPoints) = dataChunk;
+                for ii = 1:2
+                obj.plotHandle(ii).YData(1:obj.displayPoints-ln) = obj.plotHandle(ii).YData(d:obj.displayPoints-ln-1+d);
+                obj.plotHandle(ii).YData(obj.displayPoints-ln+1:obj.displayPoints) = dataChunk(ii,:);
          
-                obj.plotHandle.XData = obj.plotHandle.XData + (d./obj.sampleRate);
+                obj.plotHandle(ii).XData = obj.plotHandle(ii).XData + (d./obj.sampleRate);
+                end
                 obj.scrolling = true;
             end
+            
             axis(obj.ax,'tight');
             if ~autoScale
                 obj.ax.YLim = plotRange;

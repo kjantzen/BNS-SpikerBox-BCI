@@ -140,7 +140,7 @@ classdef BYB_Peaks
                 %combine the last part of the data that could not be
                 %evaluated on the last run to make sure no peaks are missed
                 indx = length(obj.Buffer) - 2 * obj.WidthThreshold;
-                tempBuffer = horizcat(obj.Buffer(indx:end), data);
+                tempBuffer = horzcat(obj.Buffer(indx:end), data);
                 needsIndexCorrection = true;
             end
             %set the object buffer to store the current data in case it
@@ -208,7 +208,7 @@ classdef BYB_Peaks
 
                 %define a search window around the current point
                 searchPoints = ii-widthThresh:ii+widthThresh;
-                searchPoints
+                
                 %look for the maximum value in that region
                 [~, indx] = max(absInput(searchPoints));
                 indx = indx + min(searchPoints) -1;
@@ -216,7 +216,7 @@ classdef BYB_Peaks
                 if indx == ii
                     peakCount = peakCount + 1;
                     if needsCorrection
-                        peaks(peakCount).index = ii - 2 * widthThreshold;
+                        peaks(peakCount).index = ii - 2 * widthThresh;
                     else
                         peaks(peakCount).index = ii;
                     end

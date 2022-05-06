@@ -6,6 +6,7 @@ classdef HBSpikerBox < handle
         InputBufferSamples  %number of samples in the input buffer
         Collecting          %flag used to start and stop acquisition
         ProcessObjects      %a structure containing the objects used in analysing the data
+        DownSample = 1;
     end
     properties (Access = private)
         SerialPort
@@ -63,8 +64,11 @@ classdef HBSpikerBox < handle
         %
         %   end
         %
-            
+            if nargin > 3
+                obj.DownSample = varargin{3};
+            end
             if nargin < 3
+
                 obj.InputBufferFilledCallback = [];
             else
                 if isa(varargin{2}, 'function_handle')
@@ -178,6 +182,10 @@ classdef HBSpikerBox < handle
 
              %return the new data chunk
              EEG = double(EEG) .* obj.ADC2MV;
+             if obj.DownSample > 1
+                 EEG = decimate(EEG, 4);
+                 Event = Event(1:obj.DownSample: length(Event));
+             end
 
          end
     end

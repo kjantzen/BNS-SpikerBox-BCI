@@ -208,7 +208,7 @@ classdef BYB_Peaks
 
                 %define a search window around the current point
                 searchPoints = ii-widthThresh:ii+widthThresh;
-                searchPoints
+        
                 %look for the maximum value in that region
                 [~, indx] = max(absInput(searchPoints));
                 indx = indx + min(searchPoints) -1;
