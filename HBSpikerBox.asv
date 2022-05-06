@@ -133,14 +133,19 @@ classdef HBSpikerBox < handle
          %read data from the serial port when the buffer is full
          function readSerialCallback(obj,src, evt)
          
-             timeStamp = clock;
+             callbackTime = clock;
+             if etime(callbackTime, obj.LastInputBufferTime) > obj.InputBufferDuration
+                 ConsecutiveBuffer = false;
+             else
+                 obj.ConsecutiveBufferCount = obj.ConsequtiveBufferCount + 1;
+             end
                 
              inputBytes = read(src, obj.InputBufferSamples * 3, "uint8");
              [InputBuffer, Events] = obj.UnpackData(inputBytes);
 
              %send the data to the callback
              if isa(obj.InputBufferFilledCallback, 'function_handle')
-                 obj.ProcessObjects = obj.InputBufferFilledCallback(obj.ProcessObjects, InputBuffer, Events, timeStamp);
+                 obj.ProcessObjects = obj.InputBufferFilledCallback(obj.ProcessObjects, InputBuffer, Events);
              end
 
          end

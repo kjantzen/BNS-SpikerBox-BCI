@@ -28,7 +28,7 @@ classdef BYB_Peaks
             %   that exceed this threshold will be evaluated. Default = 0.8
             %
             %   WidthThreshold - an integer value indicating the minimum width
-            %   of peak.  For WidthThreshold = n, a peak must be the maximum
+            %   of peak in samples.  For WidthThreshold = n, a peak must be the maximum
             %   absolute value with +- n samples.  Thus the minimum peak width 
             %   is 2n + 1. Default = 10;
             %
