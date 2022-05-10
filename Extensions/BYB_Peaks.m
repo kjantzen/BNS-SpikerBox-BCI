@@ -5,11 +5,15 @@ classdef BYB_Peaks
         SmoothPoints = 0;
         AdjustThreshold = false;
         SearchAcrossChunks = false;
-        Peaks = []
+        ChunkMemory = 3;
+        Peaks = [];
+        HasNew
+
     end
     properties(Access = private)
         Buffer = [];
-        LastPeaks;
+        IndexCount = 0; %the cumulative count of indexes reviewed
+
     end
     methods
         function obj = BYB_Peaks(AmpThreshold, WidthThreshold, SmoothPoints, AdjustThreshold, SearchAcrossChunks)
@@ -130,18 +134,19 @@ classdef BYB_Peaks
                 baseline = median(data);
             end
 
-            needsIndexCorrection = false;
+
 
            %combine with the previous input chunk if the search across flag
            %is set and if this is not the first chunk
             if isempty(obj.Buffer) || ~obj.SearchAcrossChunks
                 tempBuffer = data;
+                indexCorrection = 0;
             else
                 %combine the last part of the data that could not be
                 %evaluated on the last run to make sure no peaks are missed
-                indx = length(obj.Buffer) - 2 * obj.WidthThreshold;
+                indx = length(obj.Buffer) -  obj.WidthThreshold;
                 tempBuffer = horzcat(obj.Buffer(indx:end), data);
-                needsIndexCorrection = true;
+                indexCorrection = obj.WidthThreshold;
             end
             %set the object buffer to store the current data in case it
             %needs to be combined with the next chunk
@@ -166,7 +171,9 @@ classdef BYB_Peaks
             end
 
             %find any peaks
-            obj.Peaks = obj.findPeaks(tempBuffer,actualThreshold, obj.WidthThreshold, needsIndexCorrection);
+            obj.Peaks = obj.findPeaks(tempBuffer,actualThreshold, obj.WidthThreshold, indexCorrection);
+            obj.IndexCount = obj.IndexCount + length(data);
+
             
             %add the baseline back into adjusted value
             if ~isempty(obj.Peaks)
@@ -179,7 +186,7 @@ classdef BYB_Peaks
  
     end
     methods (Access = private)
-            function peaks = findPeaks(obj, input, ampThresh, widthThresh, needsCorrection)
+        function peaks = findPeaks(obj, input, ampThresh, indexCorrection)
         
             %to find the peaks we will loop over all values that exceed the
             %threshold and determine if there is a value within the width 
@@ -189,8 +196,8 @@ classdef BYB_Peaks
 
             absInput = abs(input);
 
-            minPosition = widthThresh;
-            maxPosition = length(absInput) - widthThresh;
+            minPosition = obj.widthThreshold;
+            maxPosition = length(absInput) - obj.widthThreshold;
        
             peakCount = 0;
             peaks = [];
@@ -200,7 +207,7 @@ classdef BYB_Peaks
             ii = minPosition+1;
 
             while ii < maxPosition
-         
+                
                 if absInput(ii) < ampThresh
                     ii = ii + 1;
                     continue;
@@ -214,14 +221,10 @@ classdef BYB_Peaks
                 indx = indx + min(searchPoints) -1;
                 %if the current point is the maximum then it is a peak
                 if indx == ii
-                    peakCount = peakCount + 1;
-                    if needsCorrection
-                        peaks(peakCount).index = ii - 2 * widthThresh;
-                    else
-                        peaks(peakCount).index = ii;
-                    end
-                    peaks(peakCount).adjvalue = input(ii);
+                    peak.index = obj.IndexCount + ii;  %adjust the index so it is the total offset across segments
+                    peak.adjvalue = input(ii);
                     ii = ii + widthThresh;
+                    peaks = [peaks, peak];
                 else
                     %if the current point is not the maximum, move the
                     %maximum point and try again
