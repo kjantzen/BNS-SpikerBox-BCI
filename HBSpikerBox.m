@@ -10,11 +10,11 @@ classdef HBSpikerBox < handle
     end
     properties (Access = private)
         SerialPort
+        LastInputBufferTime = 0;
     end
     properties (Constant = true)
         SampleRate = 1000;
         ADC2MV = 1.27281e-3;
-        LastInputBufferTime = 0;
     end
 
     methods

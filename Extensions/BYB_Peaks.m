@@ -144,9 +144,9 @@ classdef BYB_Peaks
             else
                 %combine the last part of the data that could not be
                 %evaluated on the last run to make sure no peaks are missed
-                indx = length(obj.Buffer) -  obj.WidthThreshold;
+                indx = length(obj.Buffer) -  obj.WidthThreshold * 2;
                 tempBuffer = horzcat(obj.Buffer(indx:end), data);
-                indexCorrection = obj.WidthThreshold;
+                indexCorrection = obj.WidthThreshold * 2;
             end
             %set the object buffer to store the current data in case it
             %needs to be combined with the next chunk
@@ -171,7 +171,7 @@ classdef BYB_Peaks
             end
 
             %find any peaks
-            obj.Peaks = obj.findPeaks(tempBuffer,actualThreshold, obj.WidthThreshold, indexCorrection);
+            obj.Peaks = obj.findPeaks(tempBuffer,actualThreshold, indexCorrection);
             obj.IndexCount = obj.IndexCount + length(data);
 
             
@@ -196,10 +196,9 @@ classdef BYB_Peaks
 
             absInput = abs(input);
 
-            minPosition = obj.widthThreshold;
-            maxPosition = length(absInput) - obj.widthThreshold;
+            minPosition = obj.WidthThreshold;
+            maxPosition = length(absInput) - obj.WidthThreshold;
        
-            peakCount = 0;
             peaks = [];
             
             %initialize a counter for where to look in the possible peak
@@ -214,16 +213,17 @@ classdef BYB_Peaks
                 end
 
                 %define a search window around the current point
-                searchPoints = ii-widthThresh:ii+widthThresh;
+                searchPoints = ii-obj.WidthThreshold:ii+obj.WidthThreshold;
                 
                 %look for the maximum value in that region
                 [~, indx] = max(absInput(searchPoints));
                 indx = indx + min(searchPoints) -1;
                 %if the current point is the maximum then it is a peak
                 if indx == ii
-                    peak.index = obj.IndexCount + ii;  %adjust the index so it is the total offset across segments
+                    peak.absindex = obj.IndexCount + ii;  %adjust the index so it is the total offset across segments
+                    peak.index = ii - indexCorrection;
                     peak.adjvalue = input(ii);
-                    ii = ii + widthThresh;
+                    ii = ii + obj.WidthThreshold;
                     peaks = [peaks, peak];
                 else
                     %if the current point is not the maximum, move the
