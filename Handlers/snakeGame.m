@@ -17,14 +17,15 @@ function p = analyze(p,data, event)
     data = smoothdata(data, 2, 'movmean', 10);
     data = data - .65;
     
+    %assume looking to the middle
     p.BCI_State = 'Center';
+
     %detect the peaks 
     p.PeakDetect = p.PeakDetect.Detect(data, 0);
     
-    if ~isempty(p.PeakDetect.Peaks)
-    
-        %loop through each peak
-        for ii = 1:length(p.PeakDetect.Peaks)
+    if ~isempty(p.PeakDetect.Peaks) %only do this if there are peaks
+        
+        for ii = 1:length(p.PeakDetect.Peaks) %loop through each peak
             
             %should ignore any peak that is too close to the last one
             if ~isempty(p.lastPeak) && p.PeakDetect.Peaks(ii).absindex - p.lastPeak.absindex < 192
@@ -34,8 +35,7 @@ function p = analyze(p,data, event)
             end
         
                 
-            %get the direction of the peak - peak value and slope (not
-            %available yet) may also be important for how to interpret the peak
+            %get the direction of the peak
             direction = sign(p.PeakDetect.Peaks(ii).adjvalue);
          
     
@@ -45,19 +45,16 @@ function p = analyze(p,data, event)
             else % 
                 p.BCI_State = 'Left'; %otherwise it becomes left
             end
-     
+  
+           %as long as the index is positive, add the peak to the event list 
            if p.PeakDetect.Peaks(ii).index > 0
                 event(p.PeakDetect.Peaks(ii).index) = direction;
            end
-    
         end
-    
     end
-    
+
     p.Chart =  p.Chart.UpdateChart(data, event, [-1, 1]);
     p.Snake = p.Snake.Move(p.BCI_State);
-
-
 
 end
 %% THIS FUNCTION IS CALLED WHEN INITIALIZING THE BCI
