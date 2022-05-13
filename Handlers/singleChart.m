@@ -8,7 +8,7 @@ function outStruct = singleChart(inStruct, varargin)
 end
 %this function gets called when data is passed to the handler
 function p = analyze(p,data, event)
-   p.Chart =  p.Chart.UpdateChart(data);
+   p.Chart =  p.Chart.UpdateChart(data, event, [0, 1.3]);
 end
 
 %this function gets called when the analyse process is initialized
