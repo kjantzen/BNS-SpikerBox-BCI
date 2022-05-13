@@ -11,11 +11,14 @@ function p = analyze(p,data, event)
 
     peaks = zeros(size(data));
     data = data - .65;
-    data = p.BPFilter.filter(data);
+    data = p.BPFilt.filter(data);
     p.PeakDetect = p.PeakDetect.Detect(data, 0);
     if ~isempty(p.PeakDetect.Peaks)
-        for ii = 1: length(p.PeaksDetect.Peaks)
-            p.HBeatIdex(1:end-1) = p.HBeatIndex(2:end);
+        for ii = 1: length(p.PeakDetect.Peaks)
+            if p.PeakDetect.Peaks(ii).adjvalue < 0 %ignore negative peaks
+                continue
+            end
+            p.HBeatIndex(1:end-1) = p.HBeatIndex(2:end);
             p.HBeatIndex(end) = p.PeakDetect.Peaks(ii).absindex;
             if p.PeakDetect.Peaks(ii).index > 0
                 peaks(p.PeakDetect.Peaks(ii).index) = sign(p.PeakDetect.Peaks(ii).adjvalue);
@@ -32,7 +35,7 @@ function p = analyze(p,data, event)
 
     %here is where it could be cleaned up if we wanted to get an NN
     HR = round( 60 / (mean(RRInterval)));
-    HRV = round(stdev(RRInteval));
+    HRV = round(std(RRInterval * 1000));
     p.handles.HR.Text = sprintf('%i BPM', HR);
     p.handles.HRV.Text = sprintf('%i msec.', HRV);
     
@@ -83,12 +86,12 @@ function p = initialize(p)
     p.Chart = BYB_Chart(p.sampleRate,5, ax);
     
     %create a peak detection object
-    p.PeakDetect = BYB_Peaks(0.3, 10, 10, false, true);
+    p.PeakDetect = BYB_Peaks(0.4, 10, 0, false, true);
     
     %create a lowpass filter
-    p.BPFilt = BYB_Filter(p.sampleRate, [5, 50], 'bandpass');
+    p.BPFilt = BYB_Filter(p.sampleRate, [0, 40], 'low');
     
     %initialize a variable to hold information about when a peak occured
-    p.HBeatIndex = zeros(1,60);
+    p.HBeatIndex = zeros(1,30);
 
 end
