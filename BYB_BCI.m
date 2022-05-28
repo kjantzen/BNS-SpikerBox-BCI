@@ -159,7 +159,7 @@ function h = buildUI()
         'ButtonPushedFcn',@callback_stopButton);
 
    
-    setaot(h.fig);
+  %  setaot(h.fig);
 
 
 end
@@ -251,7 +251,6 @@ function addPaths()
  
  newFolder{1}  = fullfile(thisPath, 'Extensions');
  newFolder{2}  = fullfile(thisPath, 'Handlers');
- newFolder{3}  = fullfile(thisPath, 'Helpers');
  
  
  pathCell = strsplit(path, pathsep);

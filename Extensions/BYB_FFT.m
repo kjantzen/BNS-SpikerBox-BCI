@@ -1,17 +1,18 @@
+%BYB_FFT calculated the magnitude of the Fourier transform for 
 classdef BYB_FFT
     properties 
-        sampleRate
-        bufferSeconds
-        bufferPoints
-        dataBuffer
-        fftData
-        fftPoints
-        nyquist
-        bins
+        SampleRate
+        BufferSeconds
+        BufferPoints
+        DataBuffer
+        FFTtData
+        FFTPoints
+        Nyquist
+        Bins
     end
     properties (Constant)
-        freqBinNames = {'delta', 'theta', 'alpha', ;'beta1', 'beta2', 'gamma'}
-        freqBinRange = [0, 3; 3, 8; 8, 12; 12,20; 20; 20, 30];
+        FreqBinNames = {'delta', 'theta', 'alpha', ;'beta1', 'beta2', 'gamma'}
+        FreqBinRange = [0, 3; 3, 8; 8, 12; 12,20; 20; 20, 30];
     end
     properties (Hidden)
         freqBinPnts
@@ -19,38 +20,44 @@ classdef BYB_FFT
     methods
         function obj = BYB_FFT(SampleRate, BufferSeconds)
             if nargin < 2
-                obj.bufferSeconds = 1;
+                obj.BufferSeconds = 1;
             else
-                obj.bufferSeconds = BufferSeconds;
+                obj.BufferSeconds = BufferSeconds;
             end
             if nargin < 1 
-                obj.sampleRate = 1000;
+                obj.SampleRate = 1000;
             else 
-                obj.sampleRate = SampleRate;
+                obj.SampleRate = SampleRate;
             end
-            obj.nyquist = obj.sampleRate /2;
-            obj.bufferPoints = obj.bufferSeconds * obj.sampleRate;
-            obj.bufferPoints = pow2(nextpow2(obj.bufferPoints));
+            obj.Nyquist = obj.SampleRate /2;
+            obj.BufferPoints = obj.BufferSeconds * obj.SampleRate;
+            obj.BufferPoints = pow2(nextpow2(obj.BufferPoints));
 
-            obj.fftPoints = obj.bufferPoints/2+1;
-            obj.dataBuffer = zeros(1,obj.bufferPoints);
+            obj.FFTPoints = obj.BufferPoints/2+1;
+            obj.DataBuffer = zeros(1,obj.BufferPoints);
             
-            obj.fAxis = obj.sampleRate * (0:(obj.bufferPoints/2))/obj.bufferPoints;
-            obj.fftData = zeros();
+            obj.fAxis = obj.SampleRate * (0:(obj.BufferPoints/2))/obj.BufferPoints;
+            obj.FFTtData = zeros();
 
             %convert the bin range values to actual offsets into the fft
             %array
-            obj.freqBinPnts = obj.freqBinRange * obj.bufferPoints / obj.sampleRate;
+            obj.freqBinPnts = obj.FreqBinRange * obj.BufferPoints / obj.SampleRate;
                 
         end
     
-        function obj = FFT(obj)
-            twoSided = abs(fft(obj.dataBuffer)/obj.bufferPoints);
-            obj.fftData  = twoSided(1:obj.bufferPoints/2+1);
-            obj.fftData(2:end-1) = 2 * obj.fftData(2:end-1);
+        function obj = FFT(obj, data)
 
-            for ii = 1:size(obj.freqBinPnts, 1);
-                obj.bins(ii) = mean(obj.fftData(obj.freqBinPnts(ii,1)+1 : obj.freqBinPnts(ii,2)));
+            ln = length(dataChunk);
+            obj.DataBuffer(1:obj.BufferPoints-ln) = obj.DataBuffer(ln + 1: obj.BufferPoints);
+            obj.DataBuffer(obj.BufferPoints-ln+1:obj.BufferPoints) = dataChunk;
+            obj = computeFFT(obj);
+
+            twoSided = abs(fft(obj.DataBuffer)/obj.BufferPoints);
+            obj.FFTtData  = twoSided(1:obj.BufferPoints/2+1);
+            obj.FFTtData(2:end-1) = 2 * obj.FFTtData(2:end-1);
+
+            for ii = 1:size(obj.freqBinPnts, 1)
+                obj.Bins(ii) = mean(obj.FFTtData(obj.freqBinPnts(ii,1)+1 : obj.freqBinPnts(ii,2)));
             end
         end
  

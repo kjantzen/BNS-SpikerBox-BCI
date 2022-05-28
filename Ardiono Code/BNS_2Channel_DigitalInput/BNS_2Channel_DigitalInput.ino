@@ -174,10 +174,15 @@ ISR(TIMER1_COMPA_vect)
        tempSample = analogRead(A0);
        digitalSample1 = digitalRead(TRIGGER_PIN9);
        digitalSample2 = digitalRead(TRIGGER_PIN11);
+       //write the samples to the LEDs
        digitalWrite(2, digitalSample1);
        digitalWrite(3, digitalSample2);
-       
+
+       //combine the outputs
        digitalOutput = (digitalSample2<<1) + digitalSample1;
+
+       //to include the digital output in the first byte, change the following line of code to
+       //reading[head] = (tempSample>>7)|0x80|(digitalOutput<<5);
        
        reading[head] =  (tempSample>>7)|0x80;//Mark begining of the frame by setting MSB to 1
        head = head+1;
@@ -192,7 +197,7 @@ ISR(TIMER1_COMPA_vect)
          head = 0;
        }
 
-       //KJ - might be able to just add another channel here or sample a digital channel and multiplex that into the data stream.
+       //KJ - remove this once including the digiral trigger information in the first byte is implemented
        reading[head] = digitalOutput;
        head += 1;  
        if(head==BUFFER_SIZE) {

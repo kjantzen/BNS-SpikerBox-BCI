@@ -20,8 +20,7 @@ classdef BYB_Snake
         SnakeDataX ;
         SnakeDataY ;
         Snake;
-        Score = 0;
-        HighScore = 0;
+        Points = 0;
     end
     properties (Access = private)
         SnakeLength = 10;
@@ -39,19 +38,18 @@ classdef BYB_Snake
             obj.Axis = Axis;
             obj.SnakeDataX = ones(1,obj.SnakeLength) * 50;
             obj.SnakeDataY = ones(1,obj.SnakeLength) * 50;
-            obj = obj.Reset();
+         %   obj.SnakeSizes = linspace(obj.MaxDotSize,obj.MinDotSize, obj.SnakeLength);
+            c = linspace(1,10,obj.SnakeLength);
 
-            obj.Snake = scatter(obj.Axis, obj.SnakeDataX, obj.SnakeDataY,  obj.MaxDotSize,1:obj.SnakeLength, 'filled', 'AlphaData',.5);
+            obj.Snake = scatter(obj.Axis, obj.SnakeDataX, obj.SnakeDataY,  obj.MaxDotSize,c, 'filled', 'AlphaData',.5);
             obj.Axis.XLim = [obj.Limits(1),obj.Limits(3)];
             obj.Axis.YLim = [obj.Limits(2),obj.Limits(4)];
-      
             obj.Axis.XGrid = 'on';
             obj.Axis.YGrid = 'on';
             obj.Axis.XAxis.Visible = 'off';
             obj.Axis.YAxis.Visible = "off";
 
         end
-        %*****************************************************************
         function obj = Move(obj, direction)
 
             %keep track of which direction the snake is travelling 
@@ -87,32 +85,32 @@ classdef BYB_Snake
                     if obj.SnakeDataX(1) < obj.Limits(1); obj.SnakeDataX(1) = obj.Limits(1); end
             end
 
-            obj.Score = obj.Score + (10 * obj.SnakeLength);
-            if obj.isCollision(obj.SnakeDataX, obj.SnakeDataY)
-                obj = obj.Reset();
-            end
+            if isCollision(obj.SnakeDataX, obj.S)
             obj.Snake.XData = obj.SnakeDataX;
             obj.Snake.YData = obj.SnakeDataY;
             obj.Snake.CData = 1:obj.SnakeLength;
-
             obj.Axis.XLim = [obj.Limits(1),obj.Limits(3)];
             obj.Axis.YLim = [obj.Limits(2),obj.Limits(4)];
             drawnow
         end
-        %*****************************************************************
         function obj = Reset(obj)
+
             obj.SnakeLength = obj.StartLength;
             obj.SnakeDataX = ones(1,obj.SnakeLength) * 50;
             obj.SnakeDataY = ones(1,obj.SnakeLength) * 50;
             c = linspace(1,10,obj.SnakeLength);
-            obj.Direction = 1;   
-            obj.HighScore = max(obj.Score, obj.HighScore);
-            obj.Score = 0;
 
+            obj.Snake = scatter(obj.Axis, obj.SnakeDataX, obj.SnakeDataY,  obj.MaxDotSize,c, 'filled', 'AlphaData',.5);
+            obj.Axis.XLim = [obj.Limits(1),obj.Limits(3)];
+            obj.Axis.YLim = [obj.Limits(2),obj.Limits(4)];
+      
+       
         end
+
+
     end
     methods (Access = private)
-        function collided = isCollision(~, X,Y)
+        function collided = isCollision(X,Y)
             
             if sum(X(2:end) == X(1) & Y(2:end) == Y(1)) > 0
                 collided = true;

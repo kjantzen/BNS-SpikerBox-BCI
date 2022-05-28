@@ -1,3 +1,32 @@
+%Returns a handle to an chart object for dynamically displaying 
+%timeseries data in real-time.
+%
+%Usage:
+%
+%   obj = BYB_Chart(Fs) - creates a chart based on data
+%   collected at the samplerate Fs.  The default is to create the
+%   plotting axis in a new figure.  The default plot length is 3 seconds.
+% 
+%   obj = BYB_Chart(Fs, ChartLength) - specifies the length of the
+%   chart in seconds.  The plot will begin scrolling once
+%   ChartLength seconds of data are plotted.
+%
+%   obj = BYB_Chart(Fs, ChartLength, axis) - specifies the axis
+%   into which the data should be plotted.
+%
+%   pass data to the functions UpdateChart method to add data to
+%   the plot
+%
+% Methods
+%
+%   chart = chart.UpdateChart(eeg, event) - updates the chart adding the
+%   data in eeg the EEG/EMG channel and adding the data in event to the event
+%   channel.  The plot is automatically scaled to the range of the data.
+%
+%   chart = chart.UpdateChart(eeg, event, [min, max]) - optionally scales
+%   the data between min and max.  
+%
+            %
 classdef BYB_Chart
     properties 
         scrolling       %flag to know whether the plot is srolling yet
@@ -16,26 +45,6 @@ classdef BYB_Chart
     end
     methods
         function obj = BYB_Chart(SampleRate, ChartLength, plotAxis)
-            %Returns a handle to an chart object for dynamically displaying 
-            %timeseries data.
-            %
-            %Usage:
-            %
-            %obj = BYB_Chart(Fs) - creates a chart based on data
-            %collected at the samplerate Fs.  The default is to create the
-            %plotting axis in a new figure and for a plot lenght of 3
-            %seconds.
-            %
-            %obj = BYB_Chart(Fs, ChartLength) - specifies the length of the
-            %chart in seconds.  The plot will begin scrolling once
-            %ChartLength seconds of data are plotted.
-            %
-            %obj = BYB_Chart(Fs, ChartLength, axis) - specifies the axis
-            %into which the data should be plotted.
-            %
-            %pass data to the functions UpdateChart method to add data to
-            %the plot
-            %
             if nargin < 3
                 f = figure;
                 f.Color = 'w';
@@ -60,8 +69,6 @@ classdef BYB_Chart
             h1 = plot(plotAxis, obj.tAxis, zeros(1,obj.displayPoints));
             h2 = line(plotAxis, obj.tAxis, zeros(1,obj.displayPoints));
             obj.plotHandle = [h1,h2];
-           % obj.plotHandle = plot(plotAxis, obj.tAxis, zeros(1,obj.displayPoints));
-         %   obj.plotHandle(2) = line(plotAxis, obj.tAxis, zeros(1,obj.displayPoints));
             obj.plotHandle(2).Color = 'g';
             obj.ax = plotAxis;
                 

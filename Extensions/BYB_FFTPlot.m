@@ -1,59 +1,77 @@
+%BYB_FFTPlot - plots the the FFT power of input data packets.
+%
+%USAGE
+%
+%   myFFT = BYB_FFT(SRate, BSec, Ax) - creates an instance of the BYB_FFT
+%   plotting object for analysing data segments with sample rate SRate and
+%   of duration BSec seconds.  Data will be plotted in the axis passed as
+%   Ax.
+%
+%
 classdef BYB_FFTPlot
     properties 
-        plotHandle      %the handle to the actual plot
-        fAxis           %the current time axis to display
-        sampleRate
-        bufferSeconds
-        bufferPoints
-        dataBuffer
-        fftData
-        fftPoints
-        nyquist
-        ax
+        FAxis           %the current time axis to display
+        SampleRate
+        BufferSeconds
+        BufferPoints
+        DataBuffer
+        FFTData
+        Nyquist
+        Axis
+        PlotPower = true;
+    end
+    properties (Hidden)
+        PlotHandle      %the handle to the actual plot
+        FFTPoints
     end
     methods
         function obj = BYB_FFTPlot(SampleRate, BufferSeconds, plotAxis)
             if nargin < 2
-                obj.bufferSeconds = 3;
+                obj.BufferSeconds = 3;
             else
-                obj.bufferSeconds = BufferSeconds;
+                obj.BufferSeconds = BufferSeconds;
             end
             if nargin < 1 
-                obj.sampleRate = 1000;
+                obj.SampleRate = 1000;
             else 
-                obj.sampleRate = SampleRate;
+                obj.SampleRate = SampleRate;
             end
-            obj.nyquist = obj.sampleRate /2;
-            obj.bufferPoints = obj.bufferSeconds * obj.sampleRate;
+            obj.Nyquist = obj.SampleRate /2;
+            obj.BufferPoints = obj.BufferSeconds * obj.SampleRate;
             %for speed, make sure the data is a multiple of a power of 2
-            obj.bufferPoints = pow2(nextpow2(obj.bufferPoints));
+            obj.BufferPoints = pow2(nextpow2(obj.BufferPoints));
       
-            obj.fftPoints = obj.bufferPoints/2+1;
-            obj.dataBuffer = zeros(1,obj.bufferPoints);
+            obj.FFTPoints = obj.BufferPoints/2+1;
+            obj.DataBuffer = zeros(1,obj.BufferPoints);
             
-            obj.fAxis = obj.sampleRate * (0:(obj.bufferPoints/2))/obj.bufferPoints;
+            obj.FAxis = obj.SampleRate * (0:(obj.BufferPoints/2))/obj.BufferPoints;
             obj = computeFFT(obj);
 
-            obj.plotHandle = plot(plotAxis, obj.fAxis, obj.fftData);
-            obj.ax = plotAxis;
-            obj.ax.YLabel.String = 'amplitude';
-            obj.ax.XLabel.String = 'frequency (Hz)';
+            obj.PlotHandle = plot(plotAxis, obj.FAxis, obj.FFTData);
+            obj.Axis = plotAxis;
+            obj.Axis.YLabel.String = 'amplitude';
+            obj.Axis.XLabel.String = 'frequency (Hz)';
                 
         end
         function obj = computeFFT(obj)
-            twoSided = abs(fft(obj.dataBuffer)/obj.bufferPoints);
-            obj.fftData  = twoSided(1:obj.bufferPoints/2+1);
-            obj.fftData(2:end-1) = 2 .* obj.fftData(2:end-1);
+            twoSided = abs(fft(obj.DataBuffer)/obj.BufferPoints);
+            obj.FFTData  = twoSided(1:obj.BufferPoints/2+1);
+            obj.FFTData(2:end-1) = 2 .* obj.FFTData(2:end-1);
+            if obj.PlotPower
+                obj.FFTData = obj.FFTData ^ 2;
+            end
+             
         end
         function obj = updateChart(obj, dataChunk, fRange)
             
             ln = length(dataChunk);
-            obj.dataBuffer(1:obj.bufferPoints-ln) = obj.dataBuffer(ln + 1: obj.bufferPoints);
-            obj.dataBuffer(obj.bufferPoints-ln+1:obj.bufferPoints) = dataChunk;
+            obj.DataBuffer(1:obj.BufferPoints-ln) = obj.DataBuffer(ln + 1: obj.BufferPoints);
+            obj.DataBuffer(obj.BufferPoints-ln+1:obj.BufferPoints) = dataChunk;
             obj = computeFFT(obj);
-            obj.plotHandle.YData = obj.fftData;
+            obj.PlotHandle.YData = obj.FFTData;
+            
       
-            obj.ax.XLim = fRange/obj.nyquist * length(obj.fftData);
+            obj.Axis.XLim = fRange/obj.Nyquist * length(obj.FFTData);
             drawnow();
           
         end

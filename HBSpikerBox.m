@@ -1,3 +1,60 @@
+% HBSpikerBox
+% 
+% The HBSPikerBox object controls communication with and acquisition from the B
+% ack Yard Brains Heart Brain SpikerBox.  This object will establish 
+% communication with the Spikerbox over the serial port, acquire data, 
+% store it in a circular buffer (at least is will eventually
+% see BYB_CircularBuffer) and return data frames to a user defined 
+% handler for further processing.
+% 
+% The HBSpikerBox extension is implemented in the SpikerBCI and it is not 
+% expected you will use it unless you are creating your own BCI interface.
+%  
+%  USAGE:
+%  
+%   mySpikerBox = HBSPikerBox(port, inputbufferduration, handler) 
+%  
+%  Input parameters
+%       port -  a string or character vector specifying the communications 
+%               port to which the SpikerBox is connected. E.g. "COM3"
+%       inputbufferduration - a scalar specifying the length in seconds 
+%               of the buffer that holds data from the SpikerBox. 
+%       handler - the function to call when the input buffer is filled.  
+%               The frequency of this call will be inversely proportional 
+%               to the input buffer length.  The callback must accept at 
+%               least three input parameters.  The first parameter is a MATLAB 
+%               struct, the second is the data vector and the third is the 
+%               event code vector (see creating your own handler for more 
+%               information) 
+% 
+%   Properties
+%       ADC2MV -  convert to mV based on the adc and gain 
+%       Collecting – an internal flag indicating the current state of 
+%               collection.  The Start and Stop methods operate on this flag.
+%       DownSample – Not impimented yet
+%       InputBufferDuration – The duration of the input the input buffer in 
+%               seconds.  Set by inputbufferduration parameter during creation.
+%       InputBufferFilledCallback – The handler function to call when the 
+%               buffer is full.  Passed by function reference as handler during creation.
+%       InputBufferSamples – The length of the input buffer in samples. 
+%               Equals  SampleRate * InputBufferDuration.
+%       PortName - The port for communicating with the spiker box passed 
+%               during creation.
+%       SampleRate – The sample rate of data acquisition.  Set internally 
+%               to 1000 Hz.
+% 
+%   Methods
+%       Start – the Start methods starts collection 
+%       Stop  - the stop method stops collection
+%  
+%  Examples
+%  
+%   Communicate with a Heart Brain Spiker Box connected to 
+%   COM3 and send data in 200 ms chunks to the simpleChart handler
+%  
+%   mySpikerBox = HBSpikerBox('COM3', .2, @simpleChart)
+%   mySpikerBox.Start
+
 classdef HBSpikerBox < handle
     properties
         PortName   %the port for communicating with the spiker box
@@ -14,57 +71,11 @@ classdef HBSpikerBox < handle
     end
     properties (Constant = true)
         SampleRate = 1000;
-        ADC2MV = 1.27281e-3;
+        ADC2MV = 1.27281e-3; %convert to mV based on the adc and gain 
     end
 
     methods
         function obj = HBSpikerBox(port, varargin)
-        %The HBSPikerBox object controls communication with and acquisition from
-        %the Backyardbrains Heart Brain SpikerBox.  This object will establish
-        %communication with the SpikerBox over the serial port, acquire
-        %data, store it in a circular buffer (at least is will eventually
-        % see BYB_CircularBuffer) and return data frames to a user defined 
-        % callback for further processing.
-        %
-        %USAGE:
-        %
-        %mySpikerBox = HBSPikerBox(port, inputbufferlength, callback) 
-        %
-        %Input parameters
-        %   port - a string or character vector specifying the 
-        %   communications port to which the SpikerBox is connected. E.g. "COM3"
-        %
-        %   inputbufferlength - a scalar specifying the length in seconds
-        %   of the buffer that holds data from the SpikerBox.  
-        %
-        %   callback - the function to call everytime the input buffer is
-        %   filled.  The frequency of this call should be approximately
-        %   equal to the input buffer length.  The callback must accept the two
-        %   input parameters signal, event.  Signal is the signal recorded
-        %   from the electrode inputs.  Event is a record of the activity
-        %   on the digital pins D9 and D11.  The length of each vector will
-        %   equal the input buffer length * the sample rate (1000 Hz)
-        %
-        %Methods
-        %   Start - starts collection 
-        %   Stop  - stops collection
-        %
-        %Example - to communicate with a Heart Brain Spiker Box  connected to 
-        %COM3 and send data in 200 ms chunks to a function called
-        %plot_callback
-        %
-        %   mySpikerBox = HBSpikerBox('COM3', .2, @plot_callback)
-        %   mySpikerBox.Start
-        %
-        %the callback function would have the following structure
-        %
-        %   function plot_callback(signal, event)
-        %       
-        %       t = [1:1:length(signal)]./1000  %create a time axis
-        %       plot(t, signal) %plot the recorded signal against time
-        %
-        %   end
-        %
             if nargin > 3
                 obj.DownSample = varargin{3};
             end
@@ -82,7 +93,7 @@ classdef HBSpikerBox < handle
                 if isnumeric(varargin{1})
                     obj.InputBufferDuration = varargin{1};
                 else
-                    warning('The Input Buffer Duration parameter must be nunberic.  You passed a %s.', class(varargin{1}));
+                    warning('The Input Buffer Duration parameter must be numeric.  You passed a %s.', class(varargin{1}));
                 end
             end
 
@@ -171,6 +182,11 @@ classdef HBSpikerBox < handle
                      %can mask with a bitand operaiton with 127 and then
                      %shift it up to MSB side by multiplying by 128
                      intout = uint16(uint16(bitand(uint8(data(i)),127)).*128);
+
+                     %extract the 2 bit event marker from the bit 6 & 7
+                     %using a bitmask and longical AND then shift it to the
+                     %LSB
+                     %inout = bitshift(bitand(uint8(data(i)), 96), -5);
                      i = i+1;
                      %the second byte uses 7 bits and the last will be
                      %zero so a straight addition here is good
